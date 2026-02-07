@@ -1,249 +1,395 @@
 # SERVONIX - Bus Complaint Management System
 
-## 📋 Project Overview
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-2.0%2B-green)](https://flask.palletsprojects.com/)
 
-SERVONIX is a Flask-based complaint management system for bus transportation services with role-based access for users, admins, and heads.
+A comprehensive **real-time bus complaint management system** with role-based access control, instant messaging, multi-tier admin management, and WebSocket-powered live updates.
 
-## 🏗️ Architecture (Refactored - December 2025)
+## 🎯 Overview
 
-### **Backend Structure**
-```
-backend/
-├── app.py                      # NEW: Main application entry (replaces app_sqlite.py)
-├── config.py                   # NEW: Centralized configuration
-├── app_sqlite.py               # LEGACY: Will be phased out
-├── auth_sqlite.py              # Authentication logic
-├── db_sqlite.py                # Database connection
-├── api_districts.py            # District API (to be converted to blueprint)
-├── notification_service.py     # Notification service
-├── notification_api.py         # Notification API
-├── pdf_generator.py            # PDF generation service
-├── requirements.txt            # Python dependencies
-│
-├── models/                     # NEW: Data models (future)
-│   └── __init__.py
-│
-├── routes/                     # NEW: Modular route blueprints
-│   ├── __init__.py
-│   ├── auth.py                 # ✅ DONE: Authentication routes
-│   ├── complaints.py           # TODO: Complaint management
-│   ├── admin.py                # TODO: Admin operations
-│   ├── user.py                 # TODO: User operations
-│   └── notifications.py        # TODO: Notification routes
-│
-├── services/                   # NEW: Business logic services
-│   ├── __init__.py
-│   ├── email_service.py        # TODO: Email operations
-│   └── pdf_service.py          # TODO: PDF generation
-│
-├── database/                   # NEW: Database layer
-│   ├── __init__.py
-│   └── connection.py           # Database connection wrapper
-│
-├── utils/                      # NEW: Utility functions
-│   ├── __init__.py
-│   ├── helpers.py              # ✅ DONE: Helper functions
-│   └── decorators.py           # ✅ DONE: Auth decorators
-│
-├── tests/                      # Test files
-├── static/                     # Static assets
-└── uploads/                    # User uploads
-```
+SERVONIX enables bus users to file complaints about service issues (safety, cleanliness, route quality, etc.). The system routes complaints intelligently to district admins and head administrators, tracks resolution in real-time, and provides messaging for direct communication between users, admins, and management.
 
-### **Project Root**
-```
-servonix/
-├── backend/                    # Backend application
-├── frontend/                   # Frontend files
-│   ├── html/                   # HTML pages
-│   ├── css/                    # Stylesheets
-│   ├── js/                     # JavaScript
-│   └── assets/                 # Images, icons
-├── data/                       # ✅ NEW: Database files (gitignored)
-│   ├── servonix.db
-│   └── bus_complaints.db
-├── docs/                       # ✅ NEW: Documentation
-│   └── (future docs)
-├── scripts/                    # Utility scripts
-│   ├── create_snapshot.ps1
-│   └── revert_changes.ps1
-├── backups/                    # Backups (gitignored)
-├── .gitignore                  # ✅ CREATED
-├── .env                        # Environment variables (gitignored)
-├── .env.example                # Environment template
-└── README.md                   # ✅ THIS FILE
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.8+
-- pip
-- Virtual environment (recommended)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   cd "v:\Documents\VS CODE\DT project\DT new"
-   ```
-
-2. **Create virtual environment**
-   ```powershell
-   python -m venv .venv
-   .venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```powershell
-   cd backend
-   pip install -r requirements.txt
-   ```
-
-4. **Set up environment variables**
-   ```powershell
-   # Copy .env.example to .env and configure
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-5. **Run the application**
-   ```powershell
-   # Using new modular app
-   python app.py
-
-   # OR using legacy app (temporary)
-   python app_sqlite.py
-   ```
-
-6. **Access the application**
-   - Frontend: http://localhost:5000
-   - API: http://localhost:5000/api/
-
-## 📊 Database
-
-Database files are now located in `/data` directory:
-- `data/servonix.db` - Main application database
-- `data/bus_complaints.db` - Complaints database
-
-**⚠️ Never commit database files to git**
-
-## 🔧 Configuration
-
-Configuration is managed in `backend/config.py`:
-
-```python
-# Key settings
-DATABASE_PATH       # Database location
-UPLOAD_FOLDER       # File upload directory
-MAX_CONTENT_LENGTH  # Max upload size (1GB)
-SMTP_SERVER         # Email server
-CORS_ORIGINS        # Allowed origins
-```
-
-Environment variables (`.env`):
-```
-SECRET_KEY=your-secret-key
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_EMAIL=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-```
-
-## 🛣️ API Routes
-
-### Authentication (`/api`)
-- `POST /register` - Register new user
-- `POST /login` - User login
-- `GET /profile` - Get user profile
-- `POST /forgot-password` - Request password reset OTP
-- `POST /verify-otp` - Verify OTP
-- `POST /reset-password` - Reset password
-- `POST /change-password` - Change password (authenticated)
-
-### Complaints (TODO - in progress)
-- Coming from `app_sqlite.py` extraction
-
-### Admin (TODO - in progress)
-- Coming from `app_sqlite.py` extraction
-
-## 🧪 Testing
-
-```powershell
-# Run tests
-cd backend
-python -m pytest tests/
-```
-
-## 📝 Migration Status
-
-### ✅ Completed
-1. Deleted 100+ duplicate/temp files
-2. Created modular directory structure
-3. Moved databases to `/data`
-4. Created `.gitignore`
-5. Extracted configuration to `config.py`
-6. Created utility modules
-7. Extracted auth routes to blueprint
-8. Created new `app.py` with application factory
-
-### 🚧 In Progress
-- Extracting complaint routes from `app_sqlite.py`
-- Extracting admin routes from `app_sqlite.py`
-- Creating service layer for email/PDF
-- Converting district API to blueprint
-
-### 📋 TODO
-- Complete route extraction (app_sqlite.py is 4747 lines)
-- Create data models layer
-- Add comprehensive tests
-- API documentation
-- Deployment guide
-
-## 🗑️ Cleanup Summary
-
-**Deleted Files:**
-- 57 duplicate 'copy' files
-- 18 temporary fix scripts
-- 9 test scripts from root
-- 20 excessive documentation files
-- 11 backend temporary files
-- **Total: ~115 files removed**
-
-**Before:** 200+ files  
-**After:** ~50 core files
-
-## 🔐 Security Notes
-
-- Never commit `.env` file
-- Never commit database files
-- Never commit uploads folder
-- Use environment variables for secrets
-- Keep `SECRET_KEY` secure in production
-
-## 📚 Development Guidelines
-
-1. **New routes:** Create in `backend/routes/` as blueprints
-2. **Business logic:** Place in `backend/services/`
-3. **Utilities:** Add to `backend/utils/`
-4. **Database:** Use `get_db()` from `database/connection`
-5. **Testing:** Write tests in `backend/tests/`
-
-## 🐛 Known Issues
-
-- `app_sqlite.py` (4747 lines) still in use - being phased out
-- Some routes not yet converted to blueprints
-- Email service needs extraction
-
-## 📞 Support
-
-For issues or questions about the refactored architecture, check:
-1. This README
-2. Code comments in `app.py`
-3. Individual route blueprint files
+**Key Achievement:** Enterprise-grade complaint platform with 120+ API endpoints, JWT authentication, SQLite persistence, and Socket.IO real-time synchronization.
 
 ---
 
-**Last Updated:** December 16, 2025  
-**Architecture Version:** 2.0 (Modular)  
-**Status:** ✅ Structure refactored, routes migration in progress
+## ✨ Features
+
+### For Users
+- 📝 File complaints with proof attachments (photos, videos, PDFs)
+- 📊 Track complaint status in real-time (pending → in-progress → resolved)
+- 💬 Direct messaging with assigned admins
+- 📱 Mobile-responsive dashboard with dark/light theme toggle
+- 🔔 Instant notifications for status updates
+- 👤 Profile management with photo upload support
+
+### For Admins (District Level)
+- 📋 View assigned complaints by district/route
+- ✅ Update complaint status and add resolution notes
+- 📞 Message users directly for clarification
+- 📈 Performance metrics and complaint statistics
+- 🔍 Search and filter complaints
+
+### For Head Administrator (System Level)
+- 👨‍💼 Manage all admins (create, edit, assign districts/routes, delete)
+- 📞 Global complaint oversight and escalation management
+- 📧 Bulk admin assignment and messaging features
+- 📊 System-wide analytics and reporting
+- 🔐 Full audit and access control
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | Flask 2.0+, Python 3.10+ |
+| **Database** | SQLite with WAL mode for concurrency |
+| **Real-time** | Flask-SocketIO with eventlet (WebSocket + polling) |
+| **Authentication** | JWT (Bearer tokens) with role-based access |
+| **Email** | Gmail SMTP with App Passwords |
+| **PDF Generation** | ReportLab |
+| **Frontend** | Vanilla JavaScript (ES6+), HTML5, CSS3 |
+| **Styling** | Responsive CSS with dark/light theme support |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.10+
+- Git
+- A Gmail account (for notifications)
+
+### Installation
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/Vasanthakumar-27/SERVONIX.git
+cd SERVONIX
+```
+
+2. **Create and activate virtual environment:**
+```bash
+python -m venv .venv
+.venv\Scripts\Activate.ps1  # Windows
+source .venv/bin/activate     # macOS/Linux
+```
+
+3. **Install dependencies:**
+```bash
+pip install -r backend/requirements.txt
+pip install eventlet  # WebSocket support
+```
+
+4. **Configure environment:**
+```bash
+cd backend
+# Create .env from .env.example
+cp .env.example .env
+
+# Edit .env with your Gmail credentials:
+# EMAIL_SENDER=your-email@gmail.com
+# EMAIL_PASSWORD=your-app-password  # (16-char Google App Password)
+# DB_NAME=bus_complaints
+```
+
+[How to generate Gmail App Password](https://support.google.com/accounts/answer/185833)
+
+5. **Initialize database:**
+```bash
+cd backend
+python database/migrate.py
+```
+
+6. **Start the server:**
+```bash
+python app.py
+# Server runs on http://127.0.0.1:5000
+```
+
+7. **Access the application:**
+- Frontend: http://127.0.0.1:5000
+- Login credentials (demo):
+  - **Head Admin**: head@example.com / headpassword
+  - **District Admin**: admin@example.com / adminpassword
+  - **User**: user@example.com / userpassword
+
+---
+
+## 📁 Project Structure
+
+```
+SERVONIX/
+├── backend/
+│   ├── app.py                    # Flask app creation & initialization
+│   ├── config.py                 # Configuration management
+│   ├── requirements.txt           # Python dependencies
+│   ├── auth/                      # Authentication utilities
+│   ├── routes/                    # API endpoints (120+ routes)
+│   │   ├── auth.py                # Login, registration, password reset
+│   │   ├── complaints.py          # Complaint CRUD & management
+│   │   ├── admin.py               # Admin operations
+│   │   ├── head.py                # Head admin features
+│   │   ├── messaging.py           # Real-time messaging
+│   │   ├── user.py                # User profile & settings
+│   │   └── ...
+│   ├── services/                  # Business logic
+│   │   ├── socketio_service.py    # WebSocket event handlers
+│   │   ├── email_service.py       # Notification emails
+│   │   ├── file_service.py        # File upload & management
+│   │   └── auto_assignment.py     # Smart complaint routing
+│   ├── database/
+│   │   ├── connection.py          # SQLite connection & pooling
+│   │   ├── migrate.py             # Database schema setup
+│   │   └── *.sql                  # Schema & queries
+│   ├── uploads/                   # User-uploaded files
+│   └── static/                    # Frontend assets
+│
+├── frontend/
+│   ├── html/                      # Dashboard pages
+│   │   ├── login.html             # Authentication UI
+│   │   ├── user_dashboard.html    # User complaint form & tracking
+│   │   ├── admin_dashboard.html   # Admin complaint management
+│   │   ├── head_dashboard.html    # Head admin system management
+│   │   └── ...
+│   ├── js/                        # JavaScript logic
+│   │   ├── app.js                 # Entry point
+│   │   ├── auth.js                # Login & auth flows
+│   │   ├── dashboard.js           # Admin dashboard interactions
+│   │   ├── head_dashboard.js      # Head admin features (6300+ lines)
+│   │   └── realtime.js            # Socket.IO client setup
+│   └── css/                       # Responsive styling
+│       ├── styles.css
+│       ├── dashboard.css
+│       └── theme.css
+│
+├── docs/                          # Comprehensive documentation
+│   ├── QUICK_START.md
+│   ├── MESSAGING_QUICK_START.md
+│   ├── PDF_GENERATION_SYSTEM.md
+│   └── ...
+│
+├── data/                          # SQLite database (git-ignored)
+├── .gitignore                     # Security: hides .env, data/, uploads/
+├── package.json                   # Frontend dependencies
+└── README.md                      # Project documentation
+```
+
+---
+
+## 🔐 Authentication & Authorization
+
+### Role-Based Access Control (RBAC)
+- **User**: File complaints, track status, message admins
+- **Admin**: Manage assigned complaints, respond to users
+- **Head Admin**: Full system control, admin management, global oversight
+
+### Security Features
+- ✅ JWT Bearer tokens with expiration
+- ✅ Password hashing (Werkzeug)
+- ✅ Rate limiting on login attempts
+- ✅ OTP-based password reset
+- ✅ CORS configured for development/production
+- ✅ `.gitignore` protects `.env` and databases from accidental git commits
+
+---
+
+## 🌐 API Highlights
+
+### Authentication
+```
+POST   /api/auth/login              # User login
+POST   /api/auth/register           # New user registration
+POST   /api/auth/reset-password     # Password reset flow
+```
+
+### Complaints
+```
+POST   /api/complaints              # File new complaint
+GET    /api/complaints              # List all complaints
+GET    /api/complaints/<id>         # View complaint details
+PUT    /api/complaints/<id>         # Update complaint (admin)
+DELETE /api/complaints/<id>         # Delete complaint
+POST   /api/complaints/<id>/messages # Add message to complaint
+```
+
+### Admin Management (Head Only)
+```
+GET    /api/head/admins             # List all admins
+POST   /api/head/admins             # Create admin
+PUT    /api/head/admins/<id>        # Edit admin details
+DELETE /api/head/admins/<id>        # Delete admin
+POST   /api/head/complaints/<id>/assign  # Assign complaint
+```
+
+### Real-Time (Socket.IO)
+```
+Events: complaint_update, message_received, status_change
+Transports: WebSocket (primary), Long-polling (fallback)
+```
+
+---
+
+## 💬 Real-Time Messaging
+
+SERVONIX uses **Socket.IO with eventlet** for instant communication:
+
+- **Instant notifications** when complaint status changes
+- **Live messaging** between users and admins
+- **Real-time dashboard updates** without page refresh
+- **Automatic fallback** to long-polling if WebSocket unavailable
+
+---
+
+## 📸 Key Features in Action
+
+### User Complaint Filing
+- Multi-step form with category, bus number, route, description
+- Proof upload (photos, videos, PDFs)
+- Automatic routing to relevant district admin
+- Instant confirmation and tracking number
+
+### Admin Dashboard
+- Real-time complaint list with filtering
+- Status-based color coding (pending/in-progress/resolved)
+- Quick-view modals with full complaint details
+- Direct messaging interface with notification badges
+
+### Head Admin Panel
+- **Admin Management**: Create, edit, delete admins with district/route assignments
+- **Photo Upload**: Admin profile pictures with lazy-loading
+- **Bulk Operations**: Assign multiple complaints or admins
+- **System Analytics**: Complaint trends, admin performance, escalation metrics
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables (`.env`)
+```env
+# Database
+DB_HOST=127.0.0.1
+DB_USER=root
+DB_NAME=bus_complaints
+
+# Email (Gmail App Password required)
+EMAIL_SENDER=your-email@gmail.com
+EMAIL_PASSWORD=xxxx-xxxx-xxxx-xxxx
+
+# SMTP
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+
+# JWT
+SECRET_KEY=your-secret-key-here
+JWT_EXPIRATION_HOURS=24
+```
+
+### Database Files (Auto-Created)
+- `data/servonix.db` — SQLite database
+- `backend/uploads/` — User-uploaded files (photos, documents)
+
+---
+
+## 🐛 Troubleshooting
+
+### WebSocket "Invalid frame header" error
+**Solution**: Install eventlet for WebSocket support:
+```bash
+pip install eventlet
+```
+
+### Port 5000 already in use
+```bash
+# Windows: Kill process on port 5000
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+
+# macOS/Linux:
+lsof -ti:5000 | xargs kill -9
+```
+
+### Database locked errors
+Ensure only one instance of `app.py` is running. The database uses WAL mode for better concurrency.
+
+### Images/files returning 404
+Clear browser cache (Ctrl+F5) to reload JavaScript with updated API paths.
+
+---
+
+## 📊 Testing
+
+Run the WebSocket connectivity test:
+```bash
+python test_websocket.py
+```
+
+This verifies:
+- API health check
+- JWT authentication
+- Dashboard page loading
+- WebSocket initialization
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! To contribute:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📝 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 📧 Contact & Support
+
+- **Author**: Vasanthakumar
+- **Email**: 927624bad117@mkce.ac.in
+- **GitHub**: [@Vasanthakumar-27](https://github.com/Vasanthakumar-27)
+
+For issues, feature requests, or questions:
+1. Check [Documentation](docs/)
+2. Open a [GitHub Issue](https://github.com/Vasanthakumar-27/SERVONIX/issues)
+3. Email: 927624bad117@mkce.ac.in
+
+---
+
+## 🎓 Acknowledgments
+
+Built with:
+- Flask & Python community
+- Socket.IO for real-time capabilities
+- SQLite for lightweight persistence
+- Open-source libraries and best practices
+
+---
+
+## 📈 Future Enhancements
+
+- [ ] Dashboard analytics with charts (Chart.js)
+- [ ] SMS notifications (Twilio integration)
+- [ ] Mobile app (React Native)
+- [ ] Advanced reporting & export (Excel, PDF)
+- [ ] Complaint escalation workflows
+- [ ] AI-based auto-categorization
+- [ ] Multi-language support (i18n)
+
+---
+
+**⭐ If you find this project useful, please star the repository!**
+
+---
+
+*Last updated: February 7, 2026*
+*SERVONIX v1.0 - Production Ready*
