@@ -1,0 +1,36 @@
+import sqlite3
+conn = sqlite3.connect('complaints.db')
+conn.row_factory = sqlite3.Row
+cursor = conn.cursor()
+
+# List tables
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+tables = [row['name'] for row in cursor.fetchall()]
+print("Tables:", tables)
+
+# Check complaint #25
+cursor.execute('''
+    SELECT c.*, d.name as district_name 
+    FROM complaints c 
+    LEFT JOIN districts d ON c.district_id = d.id 
+    WHERE c.id = 25
+''')
+row = cursor.fetchone()
+
+if row:
+    print('\nComplaint #25:')
+    print(f'  District ID: {row["district_id"]}')
+    print(f'  District Name: {row["district_name"]}')
+    print(f'  Route: {row["route"]}')
+    
+# Check media files
+cursor.execute('SELECT * FROM complaint_media WHERE complaint_id = 25')
+media = cursor.fetchall()
+
+print(f'\nMedia files: {len(media)}')
+for i, m in enumerate(media):
+    print(f'  {i+1}. {m["file_name"]}')
+    print(f'      Path: {m["file_path"]}')
+    print(f'      Type: {m["mime_type"]}')
+
+conn.close()
