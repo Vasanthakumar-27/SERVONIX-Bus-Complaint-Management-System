@@ -57,64 +57,48 @@ SERVONIX enables bus users to file complaints about service issues (safety, clea
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.10+
-- Git
-- A Gmail account (for notifications)
+### 📋 Prerequisites
+- **Python 3.10+**
+- **Git**
+- **Gmail account** (optional - for email notifications)
 
-### Installation
+### ⚡ 5-Minute Setup
 
-1. **Clone the repository:**
 ```bash
+# 1. Clone & enter directory
 git clone https://github.com/Vasanthakumar-27/SERVONIX.git
 cd SERVONIX
-```
 
-2. **Create and activate virtual environment:**
-```bash
+# 2. Create virtual environment
 python -m venv .venv
 .venv\Scripts\Activate.ps1  # Windows
-source .venv/bin/activate     # macOS/Linux
-```
+# OR on macOS/Linux: source .venv/bin/activate
 
-3. **Install dependencies:**
-```bash
-pip install -r backend/requirements.txt
-pip install eventlet  # WebSocket support
-```
+# 3. Install dependencies
+pip install -r backend/requirements.txt && pip install eventlet
 
-4. **Configure environment:**
-```bash
+# 4. Configure environment (IMPORTANT!)
 cd backend
-# Create .env from .env.example
 cp .env.example .env
+# Edit .env with your Gmail App Password (see SETUP.md for details)
 
-# Edit .env with your Gmail credentials:
-# EMAIL_SENDER=your-email@gmail.com
-# EMAIL_PASSWORD=your-app-password  # (16-char Google App Password)
-# DB_NAME=bus_complaints
-```
-
-[How to generate Gmail App Password](https://support.google.com/accounts/answer/185833)
-
-5. **Initialize database:**
-```bash
-cd backend
-python database/migrate.py
-```
-
-6. **Start the server:**
-```bash
+# 5. Start the server
 python app.py
-# Server runs on http://127.0.0.1:5000
 ```
 
-7. **Access the application:**
-- Frontend: http://127.0.0.1:5000
-- Login credentials (demo):
-  - **Head Admin**: head@example.com / headpassword
-  - **District Admin**: admin@example.com / adminpassword
-  - **User**: user@example.com / userpassword
+🎉 **Your app is now running on http://localhost:5000**
+
+### 📖 Full Setup Guide
+
+For **detailed instructions, troubleshooting, and Windows/Mac/Linux specific steps**, see [**docs/SETUP.md**](docs/SETUP.md).
+
+### 🔐 Demo Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| User | user@example.com | userpassword |
+| Admin | admin@example.com | adminpassword |
+| Head Admin | head@example.com | headpassword |
 
 ---
 
