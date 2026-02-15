@@ -1,0 +1,438 @@
+/**
+ * Notification System Styles
+ * Complete styling for notification dropdown, toasts, and badges
+ */
+
+/* ==================== NOTIFICATION BELL & BADGE ==================== */
+
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.notification-bell:hover {
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.notification-bell i {
+    font-size: 1.3rem;
+    color: #FFD700;
+}
+
+body.dark-mode .notification-bell i {
+    color: #00C8FF;
+}
+
+#notificationBadge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* ==================== NOTIFICATION DROPDOWN ==================== */
+
+.notification-dropdown {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    width: 400px;
+    max-height: 600px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    display: none;
+    flex-direction: column;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+body.dark-mode .notification-dropdown {
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    box-shadow: 0 10px 40px rgba(0, 200, 255, 0.2);
+}
+
+.notification-dropdown.active {
+    display: flex;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dropdown Header */
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+}
+
+body.dark-mode .notification-header {
+    border-bottom: 2px solid rgba(0, 200, 255, 0.2);
+}
+
+.notification-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #1F2937;
+    background: linear-gradient(135deg, #D4AF37, #FFD700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+body.dark-mode .notification-header h3 {
+    background: linear-gradient(135deg, #00C8FF, #0099CC);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.notification-actions-header {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-mark-all-read {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #D4AF37, #FFD700);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-mark-all-read:hover {
+    background: linear-gradient(135deg, #FFD700, #FFC700);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+
+body.dark-mode .btn-mark-all-read {
+    background: linear-gradient(135deg, #00C8FF, #0099CC);
+    color: #000;
+}
+
+/* Dropdown Content */
+.notification-content-wrapper {
+    overflow-y: auto;
+    max-height: 500px;
+}
+
+.notification-content-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-content-wrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.notification-content-wrapper::-webkit-scrollbar-thumb {
+    background: #D4AF37;
+    border-radius: 10px;
+}
+
+body.dark-mode .notification-content-wrapper::-webkit-scrollbar-thumb {
+    background: #00C8FF;
+}
+
+/* ==================== NOTIFICATION ITEMS ==================== */
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.notification-item:hover {
+    background: rgba(212, 175, 55, 0.05);
+}
+
+body.dark-mode .notification-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .notification-item:hover {
+    background: rgba(0, 200, 255, 0.05);
+}
+
+.notification-item.unread {
+    background: rgba(212, 175, 55, 0.08);
+    border-left: 4px solid #D4AF37;
+}
+
+body.dark-mode .notification-item.unread {
+    background: rgba(0, 200, 255, 0.08);
+    border-left: 4px solid #00C8FF;
+}
+
+.notification-content {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-icon.warning {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: white;
+}
+
+.notification-icon.info {
+    background: linear-gradient(135deg, #3B82F6, #2563EB);
+    color: white;
+}
+
+.notification-icon.success {
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: white;
+}
+
+.notification-icon.primary {
+    background: linear-gradient(135deg, #D4AF37, #FFD700);
+    color: white;
+}
+
+.notification-icon.admin {
+    background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+    color: white;
+}
+
+.notification-text {
+    flex: 1;
+}
+
+.notification-message {
+    margin: 0 0 5px 0;
+    color: #1F2937;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+body.dark-mode .notification-message {
+    color: #E5E7EB;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #9CA3AF;
+}
+
+body.dark-mode .notification-time {
+    color: #6B7280;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.btn-mark-read, .btn-delete-notif {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #9CA3AF;
+}
+
+.btn-mark-read:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+}
+
+.btn-delete-notif:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+}
+
+/* ==================== EMPTY STATE ==================== */
+
+.no-notifications {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #9CA3AF;
+}
+
+.no-notifications i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.no-notifications p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* ==================== NOTIFICATION TOAST ==================== */
+
+.notification-toast {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 350px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    z-index: 9999;
+    animation: slideInRight 0.3s ease;
+    border-left: 4px solid #D4AF37;
+}
+
+body.dark-mode .notification-toast {
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    border-left: 4px solid #00C8FF;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(400px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.notification-toast.fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(400px);
+    }
+}
+
+.toast-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-content strong {
+    display: block;
+    color: #1F2937;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+}
+
+body.dark-mode .toast-content strong {
+    color: #FFD700;
+}
+
+.toast-content p {
+    margin: 0;
+    color: #6B7280;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+body.dark-mode .toast-content p {
+    color: #C0C0C0;
+}
+
+.toast-close {
+    padding: 4px 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #9CA3AF;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+}
+
+.toast-close:hover {
+    color: #EF4444;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+    .notification-dropdown {
+        width: calc(100vw - 40px);
+        right: 20px;
+        max-height: 70vh;
+    }
+    
+    .notification-toast {
+        width: calc(100vw - 40px);
+        right: 20px;
+    }
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+@keyframes notification-bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.notification-bell.has-unread {
+    animation: notification-bounce 0.5s ease;
+}

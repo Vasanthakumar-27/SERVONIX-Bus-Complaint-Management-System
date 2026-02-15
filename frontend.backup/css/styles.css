@@ -1,0 +1,6 @@
+
+/* styles.css now delegates to centralized theme.css */
+@import url("./theme.css");
+
+/* Legacy rules removed. Use theme.css for styling. */
+

@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servonix - Smart Complaint Management</title>
+    <link rel="icon" type="image/png" href="../assets/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #21004B;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated Background Shapes */
+        .background-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.15;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape.circle {
+            border-radius: 50%;
+            background: white;
+        }
+
+        .shape.square {
+            background: white;
+        }
+
+        .shape.triangle {
+            width: 0;
+            height: 0;
+            background: transparent;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 26px solid white;
+        }
+
+        .shape.diamond {
+            width: 20px;
+            height: 20px;
+            background: white;
+            transform: rotate(45deg);
+        }
+
+        .shape.hexagon {
+            width: 24px;
+            height: 14px;
+            background: white;
+            position: relative;
+        }
+
+        .shape.hexagon:before {
+            content: "";
+            position: absolute;
+            top: -7px;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 7px solid white;
+        }
+
+        .shape.hexagon:after {
+            content: "";
+            position: absolute;
+            bottom: -7px;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 7px solid white;
+        }
+
+        .shape.star {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 15px solid white;
+            position: relative;
+        }
+
+        .shape.star:before {
+            content: "";
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 15px solid white;
+            top: 5px;
+            left: -10px;
+        }
+
+        .shape.pentagon {
+            width: 22px;
+            height: 0;
+            border-bottom: 15px solid white;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            position: relative;
+        }
+
+        .shape.pentagon:before {
+            content: "";
+            position: absolute;
+            width: 0;
+            height: 0;
+            top: 15px;
+            left: -8px;
+            border-top: 10px solid white;
+            border-left: 11px solid transparent;
+            border-right: 11px solid transparent;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.15;
+            }
+            90% {
+                opacity: 0.15;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Different animation delays and durations for variety */
+        .shape:nth-child(1) { animation-duration: 15s; animation-delay: 0s; }
+        .shape:nth-child(2) { animation-duration: 18s; animation-delay: 2s; }
+        .shape:nth-child(3) { animation-duration: 22s; animation-delay: 4s; }
+        .shape:nth-child(4) { animation-duration: 20s; animation-delay: 1s; }
+        .shape:nth-child(5) { animation-duration: 17s; animation-delay: 3s; }
+        .shape:nth-child(6) { animation-duration: 19s; animation-delay: 5s; }
+        .shape:nth-child(7) { animation-duration: 16s; animation-delay: 2.5s; }
+        .shape:nth-child(8) { animation-duration: 21s; animation-delay: 4.5s; }
+        .shape:nth-child(9) { animation-duration: 18s; animation-delay: 1.5s; }
+        .shape:nth-child(10) { animation-duration: 20s; animation-delay: 3.5s; }
+        .shape:nth-child(11) { animation-duration: 17s; animation-delay: 0.5s; }
+        .shape:nth-child(12) { animation-duration: 19s; animation-delay: 2.8s; }
+        .shape:nth-child(13) { animation-duration: 22s; animation-delay: 4.2s; }
+        .shape:nth-child(14) { animation-duration: 16s; animation-delay: 1.8s; }
+        .shape:nth-child(15) { animation-duration: 18s; animation-delay: 3.2s; }
+        .shape:nth-child(16) { animation-duration: 21s; animation-delay: 5.5s; }
+        .shape:nth-child(17) { animation-duration: 19s; animation-delay: 0.8s; }
+        .shape:nth-child(18) { animation-duration: 20s; animation-delay: 2.2s; }
+        .shape:nth-child(19) { animation-duration: 17s; animation-delay: 4.8s; }
+        .shape:nth-child(20) { animation-duration: 22s; animation-delay: 1.2s; }
+
+        /* Check if coming from splash - hide splash redirect logic */
+        .splash-checker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .splash-checker.hidden {
+            display: none;
+        }
+
+        /* Glassmorphism Login Card */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            width: 480px;
+            max-width: 100%;
+            max-height: 95vh;
+            background: rgba(45, 27, 105, 0.35);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 24px;
+            border: 1.5px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 40px 0 rgba(0, 0, 0, 0.5),
+                        0 0 80px rgba(91, 60, 196, 0.2),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: cardGlow 3s ease-in-out infinite;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes cardGlow {
+            0%, 100% { box-shadow: 0 8px 40px 0 rgba(0, 0, 0, 0.5), 0 0 80px rgba(91, 60, 196, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+            50% { box-shadow: 0 8px 40px 0 rgba(0, 0, 0, 0.5), 0 0 100px rgba(91, 60, 196, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            display: flex;
+            background: rgba(20, 10, 50, 0.4);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: linear-gradient(135deg, rgba(91, 60, 196, 0.4), rgba(59, 28, 158, 0.4));
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, #6366F1, #8B5CF6);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
+        }
+
+       
+        /* Logo Section - Bigger and tighter */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 0rem;
+            padding: 0;
+            line-height: 0;
+        }
+
+        .logo-image {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            margin: 0 auto;
+            padding: 0;
+            display: block;
+            filter: drop-shadow(0 4px 15px rgba(139, 92, 246, 0.25));
+        }
+
+        .brand-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            font-weight: 300;
+            letter-spacing: 1x;
+        }
+
+        /* Form Styles */
+        .tab-content {
+            display: none;
+            padding: 1rem;
+            overflow-y: auto;
+            flex: 1;
+            max-height: calc(95vh - 60px);
+            opacity: 0;
+            transform: translateX(30px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: slideIn 0.5s ease forwards;
+        }
+        
+        @keyframes slideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes slideOut {
+            0% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+        }
+
+        .login-form {
+            margin-top: 1rem;
+        }
+        
+        .register-form {
+            margin-top: 0.5rem;
+            margin-bottom: 0;
+        }
+
+        .form-group {
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+        
+        /* Compact spacing for register form */
+        .register-form .form-group {
+            margin-bottom: 0.65rem;
+        }
+        
+        .register-form .form-group label {
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 0.88rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.3px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(139, 92, 246, 0.7);
+            font-size: 1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.95rem 0.95rem 0.95rem 3rem;
+            background: rgba(30, 20, 70, 0.4);
+            border: 1.5px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            color: white;
+            font-size: 0.9rem;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Compact inputs for register form */
+        .register-form .form-input {
+            padding: 0.75rem 0.75rem 0.75rem 3rem;
+            font-size: 0.88rem;
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #6366F1;
+            background: rgba(40, 30, 90, 0.5);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), inset 0 0 10px rgba(139, 92, 246, 0.1);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Remember Me & Forgot Password */
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .forgot-password {
+            color: #FDB241;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: #FFC870;
+            text-shadow: 0 0 10px rgba(253, 178, 65, 0.5);
+        }
+
+        /* Buttons */
+        .btn-login, .btn-register {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #4C40F7, #3B2FD4);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 25px rgba(76, 64, 247, 0.4);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        
+        /* Compact button for register form */
+        .register-form .btn-register {
+            padding: 0.85rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .btn-login::before, .btn-register::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-login:hover::before, .btn-register:hover::before {
+            left: 100%;
+        }
+
+        .btn-login:hover, .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(76, 64, 247, 0.6);
+            background: linear-gradient(135deg, #5C50FF, #4B3FE4);
+        }
+
+        .btn-login:active, .btn-register:active {
+            transform: translateY(0);
+        }
+
+        /* Divider - Hidden */
+        .divider {
+            display: none;
+        }
+
+        /* Register Link - Hidden */
+        .register-section {
+            display: none;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #8B5CF6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 1rem;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #FCA5A5;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            color: #86EFAC;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .login-container {
+                width: 55%;
+            }
+
+            .form-container {
+                padding: 0rem 0.2rem 0.5rem 0.2rem;
+            }
+
+            .logo-section {
+                margin: 0rem;
+            }
+
+            .logo-image {
+                width: 130px;
+                height: 130px;
+            }
+
+            .tab-btn {
+                font-size: 0.9rem;
+                padding: 0.85rem;
+            }
+
+            .form-group {
+                margin-bottom: 0.8rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .logo-image {
+                width: 130px;
+                height: 130px;
+            }
+
+            .form-container {
+                padding: 0rem 0.1rem 0.1rem 0.1rem;
+            }
+
+            .logo-section {
+                margin-bottom: 0rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Shapes -->
+    <div class="background-shapes">
+        <!-- Circles -->
+        <div class="shape circle" style="width: 20px; height: 20px; left: 10%; top: 120%;"></div>
+        <div class="shape circle" style="width: 15px; height: 15px; left: 25%; top: 120%;"></div>
+        <div class="shape circle" style="width: 18px; height: 18px; left: 60%; top: 120%;"></div>
+        <div class="shape circle" style="width: 22px; height: 22px; left: 85%; top: 120%;"></div>
+        
+        <!-- Squares -->
+        <div class="shape square" style="width: 18px; height: 18px; left: 15%; top: 120%;"></div>
+        <div class="shape square" style="width: 16px; height: 16px; left: 40%; top: 120%;"></div>
+        <div class="shape square" style="width: 20px; height: 20px; left: 75%; top: 120%;"></div>
+        
+        <!-- Triangles -->
+        <div class="shape triangle" style="left: 20%; top: 120%;"></div>
+        <div class="shape triangle" style="left: 50%; top: 120%;"></div>
+        <div class="shape triangle" style="left: 80%; top: 120%;"></div>
+        
+        <!-- Diamonds -->
+        <div class="shape diamond" style="left: 30%; top: 120%;"></div>
+        <div class="shape diamond" style="left: 55%; top: 120%;"></div>
+        <div class="shape diamond" style="left: 90%; top: 120%;"></div>
+        
+        <!-- Hexagons -->
+        <div class="shape hexagon" style="left: 8%; top: 120%;"></div>
+        <div class="shape hexagon" style="left: 45%; top: 120%;"></div>
+        <div class="shape hexagon" style="left: 70%; top: 120%;"></div>
+        
+        <!-- Stars -->
+        <div class="shape star" style="left: 35%; top: 120%;"></div>
+        <div class="shape star" style="left: 65%; top: 120%;"></div>
+        
+        <!-- Pentagons -->
+        <div class="shape pentagon" style="left: 12%; top: 120%;"></div>
+        <div class="shape pentagon" style="left: 78%; top: 120%;"></div>
+    </div>
+
+    <!-- Splash Checker -->
+    <div class="splash-checker" id="splashChecker">
+        <div style="color: white; font-size: 1.2rem;">Loading...</div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Glassmorphism Login Card -->
+    <div class="login-container">
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('login')">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            <button class="tab-btn" onclick="switchTab('register')">
+                <i class="fas fa-user-plus"></i> Register
+            </button>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+                <!-- Logo Section -->
+                <div class="logo-section">
+                    <img src="../assets/logo.png" alt="Servonix Logo" class="logo-image">
+                </div>            <!-- Alert Messages -->
+            <div class="alert alert-error" id="errorAlert"></div>
+            <div class="alert alert-success" id="successAlert"></div>
+
+            <!-- Login Tab Content -->
+            <div class="tab-content active" id="loginTab">
+                <!-- Login Form -->
+                <form class="login-form" id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input 
+                                type="email" 
+                                class="form-input" 
+                                id="email" 
+                                placeholder="Enter your email"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                class="form-input" 
+                                id="password" 
+                                placeholder="Enter your password"
+                                required
+                            >
+                            <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="remember-me">
+                            <input type="checkbox" id="rememberMe">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="forgot-password">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-login">
+                        LOGIN
+                    </button>
+                </form>
+            </div>
+
+            <!-- Register Tab Content -->
+            <div class="tab-content" id="registerTab">
+                <!-- Register Form -->
+                <form class="register-form" id="registerForm">
+                    <div class="form-group">
+                        <label for="regName">Full Name</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input 
+                                type="text" 
+                                class="form-input" 
+                                id="regName" 
+                                placeholder="Enter your full name"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regEmail">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input 
+                                type="email" 
+                                class="form-input" 
+                                id="regEmail" 
+                                placeholder="Enter your email"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regPassword">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                class="form-input" 
+                                id="regPassword" 
+                                placeholder="Create a password"
+                                required
+                            >
+                            <i class="fas fa-eye password-toggle" id="toggleRegPassword"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regConfirmPassword">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                class="form-input" 
+                                id="regConfirmPassword" 
+                                placeholder="Confirm your password"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-register">
+                        REGISTER
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="divider">
+            <span>OR</span>
+        </div>
+
+        <!-- Register Link -->
+        <div class="register-section">
+            Don't have an account?
+            <a href="#" class="register-link" id="showRegister">Register Now</a>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration - Use window.API_BASE from auth.js if available
+        let API_BASE_URL;
+        if (window.API_BASE) {
+            // Use the API_BASE set by auth.js (handles DevTunnel correctly)
+            API_BASE_URL = window.API_BASE;
+        } else {
+            // Fallback for when auth.js hasn't loaded yet
+            const API_PROTOCOL = window.location.protocol === 'file:' ? 'http:' : window.location.protocol;
+            const API_HOST = window.location.hostname || '127.0.0.1';
+            
+            if (API_HOST.includes('devtunnels.ms')) {
+                // DevTunnel - no port needed
+                API_BASE_URL = `${API_PROTOCOL}//${API_HOST}`;
+            } else if (API_HOST === '127.0.0.1' || API_HOST === 'localhost') {
+                // Local development
+                API_BASE_URL = 'http://127.0.0.1:5000';
+            } else {
+                // Local network or production
+                API_BASE_URL = `${API_PROTOCOL}//${API_HOST}:5000`;
+            }
+        }
+        console.log('[login] API_BASE_URL =', API_BASE_URL);
+
+        // Check if coming from splash screen
+        window.addEventListener('DOMContentLoaded', function() {
+            const fromSplash = sessionStorage.getItem('fromSplash');
+            const splashChecker = document.getElementById('splashChecker');
+            
+            if (!fromSplash) {
+                // Not from splash, redirect to splash
+                window.location.href = 'splash.html';
+            } else {
+                // From splash, clear flag and show login page
+                sessionStorage.removeItem('fromSplash');
+                splashChecker.classList.add('hidden');
+            }
+        });
+
+        // Tab Switching Function with Animation
+        function switchTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabSlider = document.querySelector('.tab-slider');
+            
+            // Get current active form
+            const currentForm = loginTab.classList.contains('active') ? loginTab : registerTab;
+            const targetForm = tab === 'login' ? loginTab : registerTab;
+
+            // Don't do anything if clicking the same tab
+            if (currentForm === targetForm) return;
+
+            // Simple fade transition
+            currentForm.classList.remove('active');
+            targetForm.classList.add('active');
+
+            // Update tab buttons
+            if (tab === 'login') {
+                tabBtns[0].classList.add('active');
+                tabBtns[1].classList.remove('active');
+                if (tabSlider) tabSlider.style.transform = 'translateX(0)';
+            } else {
+                tabBtns[0].classList.remove('active');
+                tabBtns[1].classList.add('active');
+                if (tabSlider) tabSlider.style.transform = 'translateX(calc(100% + 6px))';
+            }
+
+            // Clear alerts when switching tabs
+            const errorAlert = document.getElementById('errorAlert');
+            const successAlert = document.getElementById('successAlert');
+            if (errorAlert) errorAlert.classList.remove('show');
+            if (successAlert) successAlert.classList.remove('show');
+        }
+
+        // Password Toggle Functionality
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // Register Password Toggle
+        const toggleRegPassword = document.getElementById('toggleRegPassword');
+        const regPasswordInput = document.getElementById('regPassword');
+
+        toggleRegPassword.addEventListener('click', function() {
+            const type = regPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            regPasswordInput.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // Alert Functions
+        function showAlert(message, type) {
+            const alertId = type === 'error' ? 'errorAlert' : 'successAlert';
+            const alert = document.getElementById(alertId);
+            alert.textContent = message;
+            alert.classList.add('show');
+
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+
+        // Loading Overlay Functions
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        // Email Validation
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        // Login Form Handler
+        const loginForm = document.getElementById('loginForm');
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Validation
+            if (!email || !password) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                showAlert('Please enter a valid email address', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                // Make API call to backend
+                const response = await fetch(`${API_BASE_URL}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const data = await response.json();
+
+                console.log('Login response:', response.ok, data);
+
+                if (response.ok && data.token) {
+                    // Store authentication data
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user_id', data.id);
+                    localStorage.setItem('user_name', data.name);
+                    localStorage.setItem('user_email', data.email);
+                    const normalizedRole = (data.role || '').toLowerCase();
+                    localStorage.setItem('user_role', normalizedRole);
+
+                    console.log('Stored role:', data.role);
+                    console.log('Redirecting to dashboard...');
+
+                    showAlert('Login successful! Redirecting...', 'success');
+
+                    // Redirect based on role immediately
+                    console.log('Executing redirect...');
+                    if (normalizedRole === 'head') {
+                        console.log('Redirecting to head_dashboard.html');
+                        window.location.href = 'head_dashboard.html';
+                    } else if (normalizedRole === 'admin') {
+                        console.log('Redirecting to admin_dashboard.html');
+                        window.location.href = 'admin_dashboard.html';
+                    } else {
+                        console.log('Redirecting to user_dashboard.html');
+                        window.location.href = 'user_dashboard.html';
+                    }
+                } else {
+                    // Clear password field on failed login
+                    document.getElementById('password').value = '';
+                    showAlert(data.error || 'Invalid email or password', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                // Clear both fields on connection error
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+                showAlert('Unable to connect to server. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Register Form Handler (with OTP Verification)
+        const registerForm = document.getElementById('registerForm');
+        registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            // Validation
+            if (!name || !email || !password || !confirmPassword) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (name.length < 2) {
+                showAlert('Name must be at least 2 characters', 'error');
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                showAlert('Please enter a valid email address', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Password must be at least 6 characters long', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match', 'error');
+                return;
+            }
+
+            // Show registration OTP modal
+            showRegistrationOTPModal(name, email, password);
+        });
+
+        // ============================================================
+        // REGISTRATION OTP VERIFICATION SYSTEM
+        // ============================================================
+        
+        let regOtpTimerInterval = null;
+        
+        function showRegistrationOTPModal(name, email, password) {
+            // Store registration data
+            window.pendingRegistration = { name, email, password };
+            
+            const modalHTML = `
+                <div id="regOtpModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(5px);">
+                    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(245,255,250,0.98) 100%); padding: 40px; border-radius: 24px; max-width: 450px; width: 90%; box-shadow: 0 25px 80px rgba(0,0,0,0.3);">
+                        
+                        <!-- STEP 1: Sending OTP -->
+                        <div id="regOtpStep1" class="reg-otp-step">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                    <i class="fas fa-user-plus" style="font-size: 28px; color: white;"></i>
+                                </div>
+                                <h2 style="margin: 0 0 8px 0; color: #065f46; font-size: 24px;">Verify Your Email</h2>
+                                <p style="color: #6b7280; margin: 0; font-size: 14px;">One more step to complete registration</p>
+                            </div>
+                            <p style="color: #666; text-align: center; margin-bottom: 10px;">We'll send a verification code to:</p>
+                            <p style="color: #10b981; font-weight: 600; text-align: center; margin-bottom: 25px; font-size: 16px; word-break: break-all;">${email}</p>
+                            <button id="sendRegOtpBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease;">
+                                <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Send Verification Code
+                            </button>
+                            <button onclick="closeRegOTPModal()" style="width: 100%; padding: 12px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 10px; font-size: 15px; cursor: pointer;">Cancel</button>
+                        </div>
+                        
+                        <!-- STEP 2: Enter OTP -->
+                        <div id="regOtpStep2" class="reg-otp-step" style="display: none;">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                    <i class="fas fa-envelope-open-text" style="font-size: 28px; color: white;"></i>
+                                </div>
+                                <h2 style="margin: 0 0 8px 0; color: #065f46; font-size: 24px;">Enter Verification Code</h2>
+                                <p style="color: #6b7280; margin: 0; font-size: 14px;">Check your email for the 6-digit code</p>
+                            </div>
+                            <input type="text" id="regOtpInput" placeholder="000000" maxlength="6" 
+                                   inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+                                   oninput="this.value=this.value.replace(/[^0-9]/g,'');"
+                                   style="width: 100%; padding: 18px; border: 2px solid #d1fae5; border-radius: 12px; font-size: 28px; text-align: center; letter-spacing: 12px; margin-bottom: 15px; font-weight: 700; color: #059669; background: #f0fdf4; box-sizing: border-box;" />
+                            <div id="regOtpTimer" style="text-align: center; color: #10b981; font-size: 14px; margin-bottom: 20px; font-weight: 500;">
+                                <i class="fas fa-clock" style="margin-right: 5px;"></i>Code expires in <span id="regOtpCountdown">5:00</span>
+                            </div>
+                            <button id="verifyRegOtpBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                                <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify & Create Account
+                            </button>
+                            <button id="resendRegOtpBtn" style="width: 100%; padding: 12px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 10px; font-size: 15px; cursor: pointer; margin-bottom: 10px;">
+                                <i class="fas fa-redo" style="margin-right: 6px;"></i>Resend Code
+                            </button>
+                            <button onclick="closeRegOTPModal()" style="width: 100%; padding: 10px; background: transparent; color: #9ca3af; border: none; font-size: 14px; cursor: pointer;">Cancel</button>
+                            <p id="regOtpError" style="color: #ef4444; font-size: 13px; text-align: center; margin-top: 10px; display: none;"></p>
+                        </div>
+                        
+                        <!-- STEP 3: Success -->
+                        <div id="regOtpStep3" class="reg-otp-step" style="display: none;">
+                            <div style="text-align: center;">
+                                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                    <i class="fas fa-check" style="font-size: 40px; color: white;"></i>
+                                </div>
+                                <h2 style="margin: 0 0 10px 0; color: #065f46; font-size: 26px;">Registration Complete!</h2>
+                                <p style="color: #6b7280; margin: 0 0 25px 0; font-size: 15px;">Your account has been created successfully.</p>
+                                <p style="color: #059669; font-weight: 600; margin-bottom: 25px;">Redirecting to login...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Send OTP button
+            document.getElementById('sendRegOtpBtn').addEventListener('click', () => sendRegistrationOTP(email));
+            
+            // Verify OTP button and Enter key
+            document.getElementById('verifyRegOtpBtn').addEventListener('click', () => verifyRegistrationOTP(email));
+            document.getElementById('regOtpInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') verifyRegistrationOTP(email);
+            });
+            
+            // Resend OTP button
+            document.getElementById('resendRegOtpBtn').addEventListener('click', () => resendRegistrationOTP(email));
+        }
+
+        // Send Registration OTP
+        async function sendRegistrationOTP(email) {
+            const { name, password } = window.pendingRegistration;
+            
+            const sendBtn = document.getElementById('sendRegOtpBtn');
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Sending...';
+            }
+            
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/register-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    showAlert('✅ Verification code sent to your email!', 'success');
+                    document.getElementById('regOtpStep1').style.display = 'none';
+                    document.getElementById('regOtpStep2').style.display = 'block';
+                    document.getElementById('regOtpInput').focus();
+                    
+                    // Start countdown timer
+                    startRegOTPTimer();
+                } else if (response.status === 409) {
+                    showAlert(data.error || 'Email already registered', 'error');
+                    closeRegOTPModal();
+                } else if (response.status === 429) {
+                    showAlert(data.error || 'Too many attempts. Please wait.', 'error');
+                } else {
+                    showAlert(data.error || 'Failed to send verification code', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('[Registration OTP] Error:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Send Verification Code';
+                }
+            }
+        }
+
+        // Registration OTP Countdown Timer
+        function startRegOTPTimer() {
+            if (regOtpTimerInterval) clearInterval(regOtpTimerInterval);
+            
+            let timeLeft = 5 * 60; // 5 minutes
+            const countdownEl = document.getElementById('regOtpCountdown');
+            const timerEl = document.getElementById('regOtpTimer');
+            
+            regOtpTimerInterval = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                if (countdownEl) {
+                    countdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                if (timeLeft <= 60 && timerEl) {
+                    timerEl.style.color = '#ef4444';
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(regOtpTimerInterval);
+                    if (countdownEl) countdownEl.textContent = 'Expired';
+                    showRegOTPError('Code has expired. Please request a new one.');
+                }
+            }, 1000);
+        }
+        
+        function showRegOTPError(message) {
+            const errorEl = document.getElementById('regOtpError');
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            }
+        }
+        
+        function hideRegOTPError() {
+            const errorEl = document.getElementById('regOtpError');
+            if (errorEl) errorEl.style.display = 'none';
+        }
+
+        // Verify Registration OTP
+        async function verifyRegistrationOTP(email) {
+            hideRegOTPError();
+            
+            const otpInput = document.getElementById('regOtpInput');
+            const otp = otpInput ? otpInput.value.trim() : '';
+            
+            if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+                showRegOTPError('Please enter a valid 6-digit code');
+                if (otpInput) otpInput.focus();
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verifyRegOtpBtn');
+            if (verifyBtn) {
+                verifyBtn.disabled = true;
+                verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Verifying...';
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/register-verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email.toLowerCase(), otp })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    // Clear timer
+                    if (regOtpTimerInterval) clearInterval(regOtpTimerInterval);
+                    
+                    // Show success step
+                    document.getElementById('regOtpStep2').style.display = 'none';
+                    document.getElementById('regOtpStep3').style.display = 'block';
+                    
+                    showAlert('🎉 Account created successfully!', 'success');
+                    
+                    // Clear form and redirect to login
+                    setTimeout(() => {
+                        registerForm.reset();
+                        closeRegOTPModal();
+                        switchTab('login');
+                        document.getElementById('email').value = email;
+                        document.getElementById('password').focus();
+                    }, 2000);
+                } else {
+                    const errorMsg = data.error || 'Invalid verification code';
+                    showRegOTPError(errorMsg);
+                    showAlert(errorMsg, 'error');
+                    if (otpInput) {
+                        otpInput.value = '';
+                        otpInput.focus();
+                    }
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('[Registration Verify] Error:', error);
+                showRegOTPError('Network error. Please try again.');
+            } finally {
+                if (verifyBtn) {
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify & Create Account';
+                }
+            }
+        }
+
+        // Resend Registration OTP
+        async function resendRegistrationOTP(email) {
+            const resendBtn = document.getElementById('resendRegOtpBtn');
+            if (resendBtn) {
+                resendBtn.disabled = true;
+                resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i>Sending...';
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/register-resend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    showAlert('✅ New verification code sent!', 'success');
+                    hideRegOTPError();
+                    document.getElementById('regOtpInput').value = '';
+                    document.getElementById('regOtpInput').focus();
+                    
+                    // Restart timer
+                    startRegOTPTimer();
+                    document.getElementById('regOtpTimer').style.color = '#10b981';
+                } else if (response.status === 429) {
+                    showAlert(data.error || 'Too many attempts', 'error');
+                } else {
+                    showAlert(data.error || 'Failed to resend code', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                if (resendBtn) {
+                    resendBtn.disabled = false;
+                    resendBtn.innerHTML = '<i class="fas fa-redo" style="margin-right: 6px;"></i>Resend Code';
+                }
+            }
+        }
+
+        // Close Registration OTP Modal
+        window.closeRegOTPModal = function() {
+            const modal = document.getElementById('regOtpModal');
+            if (modal) modal.remove();
+            
+            if (regOtpTimerInterval) clearInterval(regOtpTimerInterval);
+            
+            delete window.pendingRegistration;
+        };
+
+        // Forgot Password Handler (Secure OTP-based)
+        document.querySelector('.forgot-password').addEventListener('click', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+
+            if (!email) {
+                showAlert('Please enter your email address first', 'error');
+                document.getElementById('email').focus();
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                showAlert('Please enter a valid email address', 'error');
+                return;
+            }
+
+            // Show OTP modal
+            showOTPModal(email);
+        });
+
+        // ============================================================
+        // SECURE OTP SYSTEM FOR PASSWORD RESET
+        // ============================================================
+        
+        let otpTimerInterval = null;
+        let verificationToken = null;
+        
+        function showOTPModal(email) {
+            console.log('[OTP] Creating secure OTP modal for:', email);
+            
+            // Store email globally as a fallback
+            window.currentOTPEmail = email;
+            
+            // Create modal HTML
+            const modalHTML = `
+                <div id="otpModal" data-email="${email}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(5px);">
+                    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(245,245,255,0.98) 100%); padding: 40px; border-radius: 24px; max-width: 450px; width: 90%; box-shadow: 0 25px 80px rgba(0,0,0,0.3);">
+                        
+                        <!-- STEP 1: Request OTP -->
+                        <div id="otpStep1" class="otp-step">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                    <i class="fas fa-lock" style="font-size: 28px; color: white;"></i>
+                                </div>
+                                <h2 style="margin: 0 0 8px 0; color: #1e1b4b; font-size: 24px;">Reset Password</h2>
+                                <p style="color: #6b7280; margin: 0; font-size: 14px;">Secure OTP verification</p>
+                            </div>
+                            <p style="color: #666; text-align: center; margin-bottom: 10px;">We'll send a 6-digit OTP to:</p>
+                            <p style="color: #4f46e5; font-weight: 600; text-align: center; margin-bottom: 25px; font-size: 16px; word-break: break-all;">${email}</p>
+                            <button id="sendOtpBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3); transition: all 0.3s ease;">
+                                <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Send OTP
+                            </button>
+                            <button onclick="closeOTPModal()" style="width: 100%; padding: 12px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 10px; font-size: 15px; cursor: pointer;">Cancel</button>
+                        </div>
+                        
+                        <!-- STEP 2: Verify OTP -->
+                        <div id="otpStep2" class="otp-step" style="display: none;">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                    <i class="fas fa-shield-alt" style="font-size: 28px; color: white;"></i>
+                                </div>
+                                <h2 style="margin: 0 0 8px 0; color: #1e1b4b; font-size: 24px;">Enter OTP</h2>
+                                <p style="color: #6b7280; margin: 0; font-size: 14px;">Check your email for the 6-digit code</p>
+                            </div>
+                            <input type="text" id="otpInput" placeholder="000000" maxlength="6" 
+                                   inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+                                   oninput="this.value=this.value.replace(/[^0-9]/g,'');"
+                                   style="width: 100%; padding: 18px; border: 2px solid #e0e7ff; border-radius: 12px; font-size: 28px; text-align: center; letter-spacing: 12px; margin-bottom: 15px; font-weight: 700; color: #4f46e5; background: #f8fafc; box-sizing: border-box;" />
+                            <div id="otpTimer" style="text-align: center; color: #4f46e5; font-size: 14px; margin-bottom: 20px; font-weight: 500;">
+                                <i class="fas fa-clock" style="margin-right: 5px;"></i>OTP expires in <span id="otpCountdown">5:00</span>
+                            </div>
+                            <button id="verifyOtpBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);">
+                                <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify OTP
+                            </button>
+                            <button id="resendOtpBtn" style="width: 100%; padding: 12px; background: #f3f4f6; color: #6b7280; border: none; border-radius: 10px; font-size: 15px; cursor: pointer; margin-bottom: 10px;">
+                                <i class="fas fa-redo" style="margin-right: 6px;"></i>Resend OTP
+                            </button>
+                            <button onclick="closeOTPModal()" style="width: 100%; padding: 10px; background: transparent; color: #9ca3af; border: none; font-size: 14px; cursor: pointer;">Cancel</button>
+                            <p id="otpError" style="color: #ef4444; font-size: 13px; text-align: center; margin-top: 10px; display: none;"></p>
+                        </div>
+                        
+                        <!-- STEP 3: New Password -->
+                        <div id="otpStep3" class="otp-step" style="display: none;">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                                    <i class="fas fa-key" style="font-size: 28px; color: white;"></i>
+                                </div>
+                                <h2 style="margin: 0 0 8px 0; color: #065f46; font-size: 24px;">Create New Password</h2>
+                                <p style="color: #6b7280; margin: 0; font-size: 14px;">Choose a strong password</p>
+                            </div>
+                            <div style="position: relative; margin-bottom: 15px;">
+                                <input type="password" id="newPassword" placeholder="New Password (min 6 characters)" 
+                                       style="width: 100%; padding: 15px; border: 2px solid #d1fae5; border-radius: 10px; font-size: 16px; box-sizing: border-box;" />
+                            </div>
+                            <div style="position: relative; margin-bottom: 20px;">
+                                <input type="password" id="confirmPassword" placeholder="Confirm Password" 
+                                       style="width: 100%; padding: 15px; border: 2px solid #d1fae5; border-radius: 10px; font-size: 16px; box-sizing: border-box;" />
+                            </div>
+                            <button id="resetPasswordBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                                <i class="fas fa-check" style="margin-right: 8px;"></i>Reset Password
+                            </button>
+                            <button onclick="closeOTPModal()" style="width: 100%; padding: 10px; background: transparent; color: #9ca3af; border: none; font-size: 14px; cursor: pointer;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Get modal email
+            const modal = document.getElementById('otpModal');
+            const modalEmail = modal.getAttribute('data-email');
+            
+            // Send OTP button
+            document.getElementById('sendOtpBtn').addEventListener('click', () => sendOTP(modalEmail));
+            
+            // Verify OTP button and Enter key
+            document.getElementById('verifyOtpBtn').addEventListener('click', () => verifyOTP(modalEmail));
+            document.getElementById('otpInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') verifyOTP(modalEmail);
+            });
+            
+            // Resend OTP button
+            document.getElementById('resendOtpBtn').addEventListener('click', () => sendOTP(modalEmail));
+            
+            // Reset Password button
+            document.getElementById('resetPasswordBtn').addEventListener('click', () => resetPassword(modalEmail));
+            document.getElementById('newPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('confirmPassword').focus();
+            });
+            document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') resetPassword(modalEmail);
+            });
+        }
+
+        // STEP 1: Send OTP (Secure)
+        window.sendOTP = async function(email) {
+            const sendBtn = document.getElementById('sendOtpBtn');
+            const resendBtn = document.getElementById('resendOtpBtn');
+            
+            // Disable button
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Sending...';
+            }
+            if (resendBtn) {
+                resendBtn.disabled = true;
+            }
+            
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/request-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    showAlert('✅ OTP sent to your email!', 'success');
+                    document.getElementById('otpStep1').style.display = 'none';
+                    document.getElementById('otpStep2').style.display = 'block';
+                    document.getElementById('otpInput').focus();
+                    
+                    // Start countdown timer (5 minutes)
+                    startOTPTimer();
+                    
+                    // Show remaining requests
+                    if (data.requests_remaining !== undefined) {
+                        console.log(`[OTP] Requests remaining: ${data.requests_remaining}`);
+                    }
+                } else if (response.status === 429) {
+                    // Rate limited
+                    showAlert(data.error || 'Too many requests. Please wait and try again.', 'error');
+                } else {
+                    showAlert(data.error || 'Failed to send OTP', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('[OTP] Error:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                // Re-enable buttons
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Send OTP';
+                }
+                if (resendBtn) {
+                    resendBtn.disabled = false;
+                }
+            }
+        };
+
+        // OTP Countdown Timer
+        function startOTPTimer() {
+            if (otpTimerInterval) clearInterval(otpTimerInterval);
+            
+            let timeLeft = 5 * 60; // 5 minutes
+            const countdownEl = document.getElementById('otpCountdown');
+            const timerEl = document.getElementById('otpTimer');
+            
+            otpTimerInterval = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                if (countdownEl) {
+                    countdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                if (timeLeft <= 60 && timerEl) {
+                    timerEl.style.color = '#ef4444';
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(otpTimerInterval);
+                    if (countdownEl) countdownEl.textContent = 'Expired';
+                    showOTPError('OTP has expired. Please request a new one.');
+                }
+            }, 1000);
+        }
+        
+        function showOTPError(message) {
+            const errorEl = document.getElementById('otpError');
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            }
+        }
+        
+        function hideOTPError() {
+            const errorEl = document.getElementById('otpError');
+            if (errorEl) errorEl.style.display = 'none';
+        }
+
+        // STEP 2: Verify OTP (Secure)
+        window.verifyOTP = async function(email) {
+            hideOTPError();
+            
+            if (!email) email = window.currentOTPEmail;
+            
+            const otpInput = document.getElementById('otpInput');
+            const otp = otpInput ? otpInput.value.trim() : '';
+            
+            // Validate OTP format
+            if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+                showOTPError('Please enter a valid 6-digit OTP');
+                if (otpInput) otpInput.focus();
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verifyOtpBtn');
+            if (verifyBtn) {
+                verifyBtn.disabled = true;
+                verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Verifying...';
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email.toLowerCase(), otp })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok && data.verification_token) {
+                    // Store verification token for password reset
+                    verificationToken = data.verification_token;
+                    
+                    showAlert('✅ OTP verified successfully!', 'success');
+                    
+                    // Clear timer
+                    if (otpTimerInterval) clearInterval(otpTimerInterval);
+                    
+                    // Move to password reset step
+                    setTimeout(() => {
+                        document.getElementById('otpStep2').style.display = 'none';
+                        document.getElementById('otpStep3').style.display = 'block';
+                        document.getElementById('newPassword').focus();
+                    }, 500);
+                } else {
+                    const errorMsg = data.error || 'Invalid OTP';
+                    showOTPError(errorMsg);
+                    showAlert(errorMsg, 'error');
+                    if (otpInput) {
+                        otpInput.value = '';
+                        otpInput.focus();
+                    }
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('[OTP Verify] Error:', error);
+                showOTPError('Network error. Please try again.');
+            } finally {
+                if (verifyBtn) {
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify OTP';
+                }
+            }
+        };
+
+        // STEP 3: Reset Password (Secure)
+        window.resetPassword = async function(email) {
+            if (!email) email = window.currentOTPEmail;
+            
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!newPassword || newPassword.length < 6) {
+                showAlert('Password must be at least 6 characters', 'error');
+                document.getElementById('newPassword').focus();
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showAlert('Passwords do not match', 'error');
+                document.getElementById('confirmPassword').focus();
+                return;
+            }
+
+            if (!verificationToken) {
+                showAlert('Session expired. Please request a new OTP.', 'error');
+                closeOTPModal();
+                return;
+            }
+
+            const resetBtn = document.getElementById('resetPasswordBtn');
+            if (resetBtn) {
+                resetBtn.disabled = true;
+                resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Resetting...';
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email.toLowerCase(),
+                        verification_token: verificationToken,
+                        new_password: newPassword
+                    })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    showAlert('✅ Password reset successfully! You can now login.', 'success');
+                    
+                    // Clean up
+                    verificationToken = null;
+                    
+                    setTimeout(() => {
+                        closeOTPModal();
+                        document.getElementById('email').value = email;
+                        document.getElementById('password').value = '';
+                        document.getElementById('password').focus();
+                    }, 1500);
+                } else {
+                    showAlert(data.error || 'Failed to reset password', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('[Reset Password] Error:', error);
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                if (resetBtn) {
+                    resetBtn.disabled = false;
+                    resetBtn.innerHTML = '<i class="fas fa-check" style="margin-right: 8px;"></i>Reset Password';
+                }
+            }
+        };
+
+        // Close OTP Modal
+        window.closeOTPModal = function() {
+            const modal = document.getElementById('otpModal');
+            if (modal) modal.remove();
+            
+            if (otpTimerInterval) clearInterval(otpTimerInterval);
+            
+            verificationToken = null;
+            delete window.currentOTPEmail;
+        };
+
+        // Remember Me Handler
+        const rememberCheckbox = document.getElementById('rememberMe');
+        const emailInput = document.getElementById('email');
+
+        // Load remembered email if exists
+        window.addEventListener('load', function() {
+            const rememberedEmail = localStorage.getItem('rememberedEmail');
+            if (rememberedEmail) {
+                emailInput.value = rememberedEmail;
+                rememberCheckbox.checked = true;
+            }
+        });
+
+        // Save/remove email based on remember me checkbox
+        loginForm.addEventListener('submit', function() {
+            if (rememberCheckbox.checked) {
+                localStorage.setItem('rememberedEmail', emailInput.value);
+            } else {
+                localStorage.removeItem('rememberedEmail');
+            }
+        });
+
+        // Check if user is already logged in - DISABLED to prevent redirect loops
+        // Uncomment this when dashboard pages are ready and working properly
+        /*
+        window.addEventListener('load', function() {
+            const token = localStorage.getItem('token');
+            const role = localStorage.getItem('user_role');
+
+            if (token && role) {
+                // User is already logged in, redirect to appropriate dashboard
+                if (role === 'head') {
+                    window.location.href = 'head_dashboard.html';
+                } else if (role === 'admin') {
+                    window.location.href = 'admin_dashboard.html';
+                } else {
+                    window.location.href = 'user_dashboard.html';
+                }
+            }
+        });
+        */
+
+        // Input Focus Effects
+        const inputs = document.querySelectorAll('.form-input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.parentElement.classList.add('focused');
+            });
+
+            input.addEventListener('blur', function() {
+                this.parentElement.parentElement.classList.remove('focused');
+            });
+        });
+
+        // Debug Functions (for testing)
+        window.testLogin = function(role = 'head') {
+            const credentials = {
+                head: { email: 'head@buscompany.com', password: 'headadmin123' },
+                admin: { email: 'admin@test.com', password: 'admin123' },
+                user: { email: 'user@test.com', password: 'user123' }
+            };
+
+            const cred = credentials[role];
+            if (cred) {
+                document.getElementById('email').value = cred.email;
+                document.getElementById('password').value = cred.password;
+                console.log(`${role.toUpperCase()} credentials set. Press Enter or click LOGIN.`);
+            }
+        };
+
+        window.loginAsHead = () => testLogin('head');
+        window.loginAsAdmin = () => testLogin('admin');
+        window.loginAsUser = () => testLogin('user');
+
+        // Clear stored credentials (useful for testing)
+        window.clearLogin = function() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('user_name');
+            localStorage.removeItem('user_email');
+            localStorage.removeItem('user_role');
+            console.log('✅ All login credentials cleared from localStorage');
+            location.reload();
+        };
+
+        console.log('🎨 Servonix Glassmorphism Login Page Loaded');
+        console.log('📌 OTP System Version: 3.0 - Secure Password Reset');
+        console.log('🔐 Security: Hashed OTP storage, Rate limiting, Single-use tokens');
+        console.log('Debug commands:');
+        console.log('- loginAsHead() - Fill head admin credentials');
+        console.log('- loginAsAdmin() - Fill admin credentials');
+        console.log('- loginAsUser() - Fill user credentials');
+        console.log('- clearLogin() - Clear stored login data and reload');
+    </script>
+</body>
+</html>
