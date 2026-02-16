@@ -1,0 +1,129 @@
+/* HEAD Dashboard Theme - Applied to All Dashboards */
+
+:root {
+    --bg-900: #21004B;
+    --bg-800: #21004B;
+    --bg-700: #2D1B69;
+    --card-bg: rgba(33, 0, 75, 0.94);
+    --border: rgba(0, 255, 255, 0.4);
+    --primary: #00FFFF;
+    --primary-soft: rgba(0, 255, 255, 0.15);
+    --green: #16c782;
+    --red: #ef5b5b;
+    --blue: #1976D2;
+    --text-100: #FFFFFF;
+    --text-200: #C0C0C0;
+    --text-400: #A0AEC0;
+    --shadow: none;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --transition: all 0.25s ease;
+    
+    /* Light mode modal colors */
+    --modal-bg: #ffffff;
+    --modal-header-bg: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    --modal-border: rgba(0,0,0,0.1);
+    --modal-text: #1a1a2e;
+    --modal-text-muted: #4a5568;
+    --modal-input-bg: #f8f9fa;
+    --modal-input-border: #dee2e6;
+    --modal-footer-bg: #f8f9fa;
+    
+    /* Light mode detail box colors - Indigo Blue */
+    --detail-box-bg: rgba(79, 70, 229, 0.1);
+    --detail-box-border: rgba(79, 70, 229, 0.3);
+}
+
+body.dark-mode {
+    --bg-900: #000000;
+    --bg-800: #0a0a0a;
+    --bg-700: #1a1a1a;
+    --card-bg: rgba(31, 31, 31, 0.95);
+    --border: rgba(0, 200, 255, 0.3);
+    --primary: #00C8FF;
+    --primary-soft: rgba(0, 200, 255, 0.15);
+    --text-100: #FFFFFF;
+    --text-200: #C0C0C0;
+    --text-400: #A0AEC0;
+    --shadow: none;
+    
+    /* Dark mode modal colors */
+    --modal-bg: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+    --modal-header-bg: linear-gradient(135deg, rgba(0, 200, 255, 0.1), rgba(0, 150, 255, 0.05));
+    --modal-border: rgba(0, 200, 255, 0.3);
+    --modal-text: #ffffff;
+    --modal-text-muted: #C0C0C0;
+    --modal-input-bg: rgba(45, 45, 68, 0.8);
+    --modal-input-border: rgba(0, 200, 255, 0.3);
+    --modal-footer-bg: rgba(0, 0, 0, 0.3);
+    
+    /* Dark mode detail box colors */
+    --detail-box-bg: rgba(0, 0, 0, 0.3);
+    --detail-box-border: rgba(255, 255, 255, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-900);
+    min-height: 100vh;
+    color: var(--text-100);
+    transition: all 0.3s ease;
+}
+
+body.dark-mode {
+    background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+}
+
+/* Global Modal Theme Styles */
+.modal-overlay .modal-content,
+.modal-content {
+    background: var(--modal-bg) !important;
+    border-color: var(--modal-border) !important;
+    color: var(--modal-text) !important;
+}
+
+.modal-overlay .modal-header,
+.modal-header {
+    background: var(--modal-header-bg) !important;
+    border-color: var(--modal-border) !important;
+}
+
+.modal-overlay .modal-header h3,
+.modal-header h3 {
+    color: var(--modal-text) !important;
+}
+
+body.dark-mode .modal-overlay .modal-header h3,
+body.dark-mode .modal-header h3 {
+    color: #00C8FF !important;
+}
+
+.modal-overlay .modal-body,
+.modal-body {
+    background: transparent !important;
+}
+
+.modal-overlay .modal-footer,
+.modal-footer {
+    background: var(--modal-footer-bg) !important;
+    border-color: var(--modal-border) !important;
+}
+
+/* Admin Detail Box Styling - Indigo Blue for Light Mode */
+.admin-detail-box {
+    background: var(--detail-box-bg) !important;
+    border: 1px solid var(--detail-box-border) !important;
+}
+
+.modal-overlay input,
+.modal-overlay textarea,
+.modal-overlay select {
+    background: var(--modal-input-bg) !important;
+    border-color: var(--modal-input-border) !important;
+    color: var(--modal-text) !important;

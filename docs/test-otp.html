@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OTP System Debugger</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #4338ca;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            width: 300px;
+            margin: 10px 0;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff4444; }
+        .info { color: #44aaff; }
+    </style>
+</head>
+<body>
+    <h1>🔍 OTP System Debugger</h1>
+    
+    <div class="debug-box">
+        <h2>Test OTP Verification API</h2>
+        <div>
+            <input type="email" id="testEmail" placeholder="Email" value="head@buscompany.com" />
+        </div>
+        <div>
+            <input type="text" id="testOtp" placeholder="OTP (6 digits)" maxlength="6" />
+        </div>
+        <button onclick="testVerifyOTP()">Test Verify OTP</button>
+        <button onclick="testSendOTP()">Test Send OTP</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="debug-box">
+        <h2>Console Logs</h2>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5000';
+        const logsDiv = document.getElementById('logs');
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            logsDiv.innerHTML = '';
+        }
+
+        async function testSendOTP() {
+            const email = document.getElementById('testEmail').value;
+            
+            if (!email) {
+                addLog('❌ Please enter an email', 'error');
+                return;
+            }
+
+            addLog(`📤 Sending OTP to: ${email}`, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog(`✅ OTP sent successfully!`, 'success');
+                    addLog(`📧 Check console/logs for OTP (email might not be configured)`, 'info');
+                    if (data.otp) {
+                        addLog(`🔑 OTP: ${data.otp}`, 'success');
+                        document.getElementById('testOtp').value = data.otp;
+                    }
+                } else {
+                    addLog(`❌ Failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testVerifyOTP() {
+            const email = document.getElementById('testEmail').value;
+            const otp = document.getElementById('testOtp').value;
+            
+            addLog(`🔍 Testing OTP verification...`, 'info');
+            addLog(`   Email: ${email}`, 'info');
+            addLog(`   OTP: ${otp}`, 'info');
+            addLog(`   OTP Length: ${otp.length}`, 'info');
+
+            if (!email) {
+                addLog('❌ Email is required', 'error');
+                return;
+            }
+
+            if (!otp || otp.length !== 6) {
+                addLog('❌ OTP must be 6 digits', 'error');
+                return;
+            }
+
+            try {
+                const requestBody = { 
+                    email: email.trim().toLowerCase(), 
+                    otp: otp.trim() 
+                };
+                
+                addLog(`📤 Request: ${JSON.stringify(requestBody)}`, 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/api/verify-otp`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                addLog(`📥 Response Status: ${response.status} ${response.statusText}`, 
+                       response.ok ? 'success' : 'error');
+
+                const data = await response.json();
+                addLog(`📥 Response: ${JSON.stringify(data)}`, 
+                       response.ok ? 'success' : 'error');
+
+                if (response.ok) {
+                    addLog(`✅ OTP VERIFIED SUCCESSFULLY!`, 'success');
+                    addLog(`   You can now reset the password`, 'success');
+                } else {
+                    addLog(`❌ Verification failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Network error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Log on page load
+        addLog('🚀 OTP Debugger Ready', 'success');
+        addLog('💡 Click "Test Send OTP" first, then "Test Verify OTP"', 'info');
+    </script>
+</body>
+</html>

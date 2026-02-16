@@ -1,0 +1,2 @@
+/* dashboard.css now delegates to centralized theme.css */
+@import url("./theme.css");
