@@ -30,15 +30,22 @@ def create_app():
     app.config['SECRET_KEY'] = config.SECRET_KEY
     app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max upload
     
-    # CORS configuration - Allow localhost and local network
+    # CORS configuration - Allow localhost, local network, GitHub Pages, and Render
+    _frontend_url = os.environ.get('FRONTEND_URL', '')
+    _allowed_origins = [
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+        "http://192.168.*.*:*",
+        "http://10.*.*.*:*",
+        r"https://.*\.onrender\.com",      # any Render preview/deploy URL
+        r"https://.*\.github\.io",         # any GitHub Pages URL
+    ]
+    if _frontend_url:
+        _allowed_origins.append(_frontend_url)
+
     CORS(app, resources={
         r"/api/*": {
-            "origins": [
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "http://192.168.*.*:*",
-                "http://10.*.*.*:*"
-            ],
+            "origins": _allowed_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "Accept"],
             "expose_headers": ["Content-Type", "Authorization"],
@@ -46,22 +53,18 @@ def create_app():
             "max_age": 3600
         },
         r"/uploads/*": {
-            "origins": [
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "http://192.168.*.*:*",
-                "http://10.*.*.*:*"
-            ],
+            "origins": _allowed_origins,
             "methods": ["GET", "OPTIONS"],
             "allow_headers": ["Content-Type", "Range"],
         }
     })
     
     # Initialize SocketIO with proper WebSocket support
+    # Use gevent async worker (Gunicorn + gevent recommended for production).
     socketio = SocketIO(
-        app, 
-        cors_allowed_origins="*", 
-        async_mode='threading',
+        app,
+        async_mode='gevent',
+        cors_allowed_origins="*",
         ping_timeout=60,
         ping_interval=25,
         logger=False,
@@ -223,11 +226,17 @@ def create_app():
     return app, socketio
 
 
-def run_server(host='0.0.0.0', port=5000):
-    """Run development server"""
+def run_server(host=None, port=None):
+    """Run development server. Host and port read from environment when not provided."""
     app, socketio = create_app()
-    logger.info(f"Starting SERVONIX server on port {port}")
-    socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
+    # Use env vars when available (platforms like Render provide $PORT)
+    host = host or os.environ.get('HOST', '0.0.0.0')
+    port = int(port or os.environ.get('PORT', os.environ.get('HTTP_PORT', 5000)))
+    debug = os.environ.get('DEBUG', 'False').lower() in ('1', 'true', 'yes')
+    logger.info(f"Starting SERVONIX server on {host}:{port} (debug={debug})")
+    # When using Flask-SocketIO on production platforms, an async worker (eventlet/gevent)
+    # is preferred. If available, SocketIO will select it automatically.
+    socketio.run(app, host=host, port=port, debug=debug)
 
 
 if __name__ == '__main__':

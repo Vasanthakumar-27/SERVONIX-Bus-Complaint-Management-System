@@ -1,0 +1,17 @@
+.git
+__pycache__
+docs/
+docs-md/
+node_modules/
+.venv
+venv
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+uploads/
+backend/uploads/
+frontend/node_modules/
+/.github
+/.vscode
