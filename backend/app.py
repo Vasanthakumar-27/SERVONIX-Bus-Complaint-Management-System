@@ -18,6 +18,16 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+# Ensure logs directory and file handler
+try:
+    logs_path = os.path.join(os.path.dirname(__file__), 'logs')
+    os.makedirs(logs_path, exist_ok=True)
+    fh = logging.FileHandler(os.path.join(logs_path, 'app.log'))
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(fh)
+except Exception:
+    logger.exception('Failed to initialize file logging')
 
 
 def create_app():
@@ -101,6 +111,7 @@ def create_app():
     from routes.dashboard import dashboard_bp
     from routes.admin_head_messaging import admin_head_bp
     from routes.messages import messages_bp
+    from routes.debug import debug_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(complaints_bp)
@@ -113,6 +124,11 @@ def create_app():
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(admin_head_bp)
     app.register_blueprint(messages_bp)
+    # Register debug blueprint (protected via DEBUG_API_KEY header)
+    try:
+        app.register_blueprint(debug_bp)
+    except Exception:
+        logger.exception('Failed to register debug blueprint')
     
     # Frontend routes
     @app.route('/')

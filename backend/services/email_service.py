@@ -21,7 +21,7 @@ class EmailService:
         self.development_mode = not bool(self.sender_password)
         
         if self.development_mode:
-            logger.warning("Email service running in DEVELOPMENT MODE - emails will be logged to console")
+            logger.warning("Email service running in DEVELOPMENT MODE - emails will be logged to console and to file")
     
     def _send_email(self, to_email, subject, html_body):
         """Internal method to send email"""
@@ -33,13 +33,22 @@ class EmailService:
             msg.attach(MIMEText(html_body, 'html'))
             
             if self.development_mode:
-                # Development mode: log to console
+                # Development mode: log to console and append to a local email log file
                 logger.warning(f"[DEV MODE] Email to {to_email}: {subject}")
                 print(f"\n{'='*80}\n📧 EMAIL (DEVELOPMENT MODE)\n{'-'*80}")
                 print(f"To: {to_email}")
                 print(f"Subject: {subject}")
                 print(f"Body preview: {html_body[:200]}...")
                 print(f"{'='*80}\n")
+                try:
+                    # Ensure logs directory exists
+                    logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+                    os.makedirs(logs_dir, exist_ok=True)
+                    log_path = os.path.join(logs_dir, 'email_dev.log')
+                    with open(log_path, 'a', encoding='utf-8') as f:
+                        f.write(f"\n=== EMAIL [{time.strftime('%Y-%m-%d %H:%M:%S')}] ===\nTo: {to_email}\nSubject: {subject}\n{html_body}\n=== END EMAIL ===\n")
+                except Exception:
+                    logger.exception('Failed to write dev email log')
                 return True
             else:
                 # Production mode: send via SMTP
