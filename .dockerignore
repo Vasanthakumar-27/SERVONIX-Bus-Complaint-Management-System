@@ -8,9 +8,7 @@ venv
 *.pyc
 *.pyo
 *.pyd
-*.sqlite3
 *.log
-uploads/
 backend/uploads/
 frontend/node_modules/
 /.github

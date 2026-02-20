@@ -11,6 +11,9 @@ from datetime import datetime
 # dirname(dirname(dirname(__file__))) = project root
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'servonix.db')
 
+# Ensure the data directory exists (critical for Docker/Render where it may not be present)
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
 
 def get_db():
     """Get database connection with improved settings"""

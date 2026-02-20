@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy project
 COPY . /app
 
+# Ensure writable data directory for SQLite database
+RUN mkdir -p /app/data
+
 ENV PYTHONUNBUFFERED=1
 
 # Expose default port
