@@ -371,6 +371,18 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_complaint_media_complaint ON complaint_media (complaint_id)
     ''')
 
+    # Create password_otps table for OTP-based password reset
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS password_otps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      otp TEXT NOT NULL,
+      expires_at DATETIME NOT NULL,
+      verified INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
     # Create index for password_otps table
     cursor.execute('''
     CREATE INDEX IF NOT EXISTS idx_email_otp ON password_otps (email, otp)
