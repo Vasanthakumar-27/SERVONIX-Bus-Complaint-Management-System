@@ -48,7 +48,7 @@ SERVONIX enables bus users to file complaints about service issues (safety, clea
 | **Database** | SQLite with WAL mode for concurrency |
 | **Real-time** | Flask-SocketIO with eventlet (WebSocket + polling) |
 | **Authentication** | JWT (Bearer tokens) with role-based access |
-| **Email** | Gmail SMTP with App Passwords |
+| **Email** | Resend HTTPS API (production) / Gmail SMTP (local dev) |
 | **PDF Generation** | ReportLab |
 | **Frontend** | Vanilla JavaScript (ES6+), HTML5, CSS3 |
 | **Styling** | Responsive CSS with dark/light theme support |
@@ -257,7 +257,13 @@ SERVONIX uses **Socket.IO with eventlet** for instant communication:
 SECRET_KEY=your-secret-key-here
 FRONTEND_URL=https://vasanthakumar-27.github.io/SERVONIX-Bus-Complaint-Management-System
 
-# Email/SMTP (Gmail App Password - see instructions below)
+# Email — Option A: Resend HTTPS API (recommended for Render/cloud hosting)
+# Sign up free at https://resend.com — 100 emails/day on free tier
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxx
+# Optional: verified sender address (leave blank to use Resend's sandbox)
+# RESEND_FROM=SERVONIX <noreply@yourdomain.com>
+
+# Email — Option B: Gmail SMTP (works for local dev only; blocked on Render free tier)
 EMAIL_SENDER=servonix70@gmail.com
 EMAIL_PASSWORD=your-16-char-app-password
 SMTP_SERVER=smtp.gmail.com
@@ -268,16 +274,21 @@ DEBUG_API_KEY=your-debug-key-here
 DEBUG=false
 ```
 
-### Gmail App Password Setup
+> **Priority order:** `RESEND_API_KEY` → Gmail SMTP → development mode (OTP shown on screen).
+> If neither is configured, the OTP is **displayed directly in the browser** so registration still works.
+
+### Resend Setup (Recommended — works on Render)
+1. Sign up free at https://resend.com
+2. Dashboard → **API Keys** → **Create API Key** → copy it (starts with `re_`)
+3. Add `RESEND_API_KEY=re_xxxxx` to Render → Environment
+4. Optionally verify a sender domain in Resend → Domains to send from your own address
+
+### Gmail App Password Setup (Local Dev Only)
+> Gmail SMTP ports 587 and 465 are **blocked on Render free tier** — use Resend for cloud hosting.
 1. Go to: https://myaccount.google.com/apppasswords
-2. Sign in with your Gmail account
-3. Create a new app password:
-   - Select **Mail** from dropdown
-   - Select **Other** (custom name)
-   - Name it "SERVONIX SMTP"
-4. Click **Generate**
-5. Copy the 16-character password (format: `xxxx-xxxx-xxxx-xxxx`)
-6. Use this password for `EMAIL_PASSWORD` (remove spaces)
+2. Sign in and create a new app password named "SERVONIX SMTP"
+3. Copy the 16-character password (format: `xxxx xxxx xxxx xxxx`)
+4. Use it for `EMAIL_PASSWORD` **without spaces**
 
 **Note:** Regular Gmail passwords won't work. You MUST use an App Password.
 
@@ -390,51 +401,64 @@ Built with:
 
 ---
 
-## Debugging & SMTP
+## Debugging & Email Delivery
 
-Short instructions to debug OTP/email delivery and enable production SMTP.
+Short instructions to debug OTP/email delivery and enable production email.
 
-- **View service health** (local or deployed):
+### Email service priority
+
+| Condition | Mode | What happens |
+|-----------|------|--------------|
+| `RESEND_API_KEY` set | **Resend HTTPS API** | Real email sent via resend.com |
+| `EMAIL_PASSWORD` set (no Resend key) | **Gmail SMTP** | Real email via Gmail (local dev only) |
+| Neither set | **Dev / fallback mode** | OTP is **shown on screen** in a yellow banner and auto-filled |
+
+> Render free tier **blocks SMTP ports 587 and 465**. Always use Resend for cloud deployments.
+
+### Enable production email (Resend — works on Render)
+1. Sign up free at https://resend.com (100 emails/day free)
+2. Dashboard → **API Keys** → **Create API Key**
+3. Render Dashboard → **servonix-backend** → **Environment** → add:
+
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxx
+```
+
+4. Click **Save** — Render auto-redeploys
+5. Check Render logs — you should see: `Email service using Resend HTTPS API`
+6. Register a new account and verify the OTP arrives in your inbox
+
+### View service health
 
 ```bash
-# Local health check
+# Local
 curl -sS http://localhost:5000/api/health
 
 # Deployed (Render)
 curl -sS https://servonix-bus-complaint-management-system.onrender.com/api/health
 ```
 
-- **Use the protected debug endpoint** `/debug/status` to inspect DB objects and the recent development email log. Set a `DEBUG_API_KEY` environment variable on the server and call with header `X-DEBUG-KEY`:
+### Use the protected debug endpoint
+
+Set `DEBUG_API_KEY` in Render environment and call:
 
 ```bash
 curl -H "X-DEBUG-KEY: $DEBUG_API_KEY" \
 	https://servonix-bus-complaint-management-system.onrender.com/debug/status
 ```
 
-- **Dev email log (when SMTP not configured)**:
-	- Dev emails (OTPs) are appended to `backend/logs/email_dev.log` and also printed to server logs. On Render or Docker, check that file or view service logs.
+### Dev fallback (when no email service is configured)
+- The OTP is returned in the API response as `dev_otp` and **auto-filled** in the browser OTP input with a yellow warning banner.
+- OTPs are also appended to `backend/logs/email_dev.log` and printed to Render logs.
+- This means registration always works even without any email credentials.
 
-- **Enable production email (SMTP with Gmail)**:
-	1. Get Gmail App Password: https://myaccount.google.com/apppasswords
-	2. Add these environment variables to Render:
-
-```env
-EMAIL_SENDER=servonix70@gmail.com
-EMAIL_PASSWORD=<16-char-app-password-no-spaces>
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-```
-
- 3. Click "Save rebuild and deploy" in Render dashboard
- 4. Wait 2-5 minutes for deployment to complete
- 5. Trigger an OTP (register new account via frontend) and verify email delivery
-
-- **Common checks if OTP not received**:
-	- Verify `EMAIL_PASSWORD` is the 16-character Gmail App Password (not regular password)
-	- Remove spaces/dashes from app password when entering in Render
-	- Check spam/junk folder in recipient's inbox
-	- Gmail has daily sending limits for new accounts (wait 24h or verify account)
-	- Inspect Render logs for SMTP connection errors (Dashboard → Logs tab)
-	- Ensure `EMAIL_SENDER` matches the Gmail account that created the app password
+### Common checks if OTP not received
+- **No email at all?** → Check Render logs. If you see `Email service running in DEVELOPMENT MODE`, neither `RESEND_API_KEY` nor `EMAIL_PASSWORD` is set — add `RESEND_API_KEY` (see above). The OTP should still appear on screen in a yellow banner.
+- **Using Resend?** → Verify `RESEND_API_KEY` is correct and starts with `re_`. Check Render logs for `[Resend] Failed` lines with the HTTP status code.
+- **Resend sender domain not verified?** → Without a verified domain, Resend only sends *from* `onboarding@resend.dev`. To send from your own address, verify a domain in Resend → Domains.
+- **Using Gmail SMTP?** → Render free tier blocks ports 587 and 465. Gmail SMTP only works locally. Switch to Resend for Render.
+- **Check spam/junk folder** in the recipient's inbox.
+- **Resend free tier limit**: 100 emails/day. Check your Resend dashboard for quota.
+- **Inspect Render logs**: Dashboard → Logs tab — filter for `[Resend]` or `Error sending email`.
 
 **Render Deployment:** See [docs/DEPLOYMENT_STATUS.md](docs/DEPLOYMENT_STATUS.md) for complete setup checklist.
