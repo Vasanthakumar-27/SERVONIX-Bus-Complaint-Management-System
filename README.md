@@ -75,15 +75,13 @@ python -m venv .venv
 # OR on macOS/Linux: source .venv/bin/activate
 
 # 3. Install dependencies
-pip install -r backend/requirements.txt && pip install eventlet
+pip install -r backend/requirements.txt
 
-# 4. Configure environment (IMPORTANT!)
-cd backend
-cp .env.example .env
-# Edit .env with your Gmail App Password (see SETUP.md for details)
+# 4. Configure environment (optional — for real email delivery)
+# Copy backend/.env.example to backend/.env and add RESEND_API_KEY
 
-# 5. Start the server
-python app.py
+# 5. Start the server (MUST run from project root, not from inside backend/)
+python -m backend.app
 ```
 
 🎉 **Your app is now running on http://localhost:5000**
