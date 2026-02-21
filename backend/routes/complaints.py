@@ -110,7 +110,7 @@ def create_complaint():
         assigned_district_id = None
         assignment_reason = None
         try:
-            from services.auto_assignment import AutoAssignmentService
+            from ..services.auto_assignment import AutoAssignmentService
             assignment = AutoAssignmentService.find_admin_for_complaint(route_number, bus_number)
             if assignment:
                 assigned_admin_id = assignment['admin_id']

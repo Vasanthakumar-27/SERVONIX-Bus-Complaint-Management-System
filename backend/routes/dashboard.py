@@ -2,9 +2,9 @@
 from flask import Blueprint, request, jsonify
 import logging
 
-from database.connection import get_db
-from utils.decorators import require_head_auth
-from utils.helpers import clamp_limit
+from ..database.connection import get_db
+from ..utils.decorators import require_head_auth
+from ..utils.helpers import clamp_limit
 
 logger = logging.getLogger(__name__)
 

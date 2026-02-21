@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from functools import wraps
 import jwt
 from datetime import datetime
-from database.connection import get_db
+from ..database.connection import get_db
 import os
 import logging
 

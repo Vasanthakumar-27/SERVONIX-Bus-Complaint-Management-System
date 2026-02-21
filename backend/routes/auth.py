@@ -207,7 +207,7 @@ def register_request():
         conn.close()
         
         # Send OTP via email
-        from services.email_service import email_service
+        from ..services.email_service import email_service
         email_sent = email_service.send_registration_otp_email(email, otp, name)
         
         if email_sent:
@@ -386,7 +386,7 @@ def register_resend():
         conn.close()
         
         # Send OTP via email
-        from services.email_service import email_service
+        from ..services.email_service import email_service
         email_sent = email_service.send_registration_otp_email(email, otp, pending['name'])
         
         if email_sent:
@@ -572,7 +572,7 @@ def request_otp():
         conn.close()
         
         # Send OTP via email (plain OTP, not hash)
-        from services.email_service import email_service
+        from ..services.email_service import email_service
         email_sent = email_service.send_otp_email(email, otp, user['name'])
         
         if email_sent:

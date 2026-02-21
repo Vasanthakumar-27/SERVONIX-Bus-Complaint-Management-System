@@ -8,9 +8,6 @@ from flask_cors import CORS
 from flask_talisman import Talisman
 from flask_socketio import SocketIO
 
-# Add backend directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 from .config import config
 from .database.connection import init_db
 

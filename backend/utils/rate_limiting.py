@@ -2,7 +2,7 @@
 Security rate limiting helpers
 ===============================
 """
-from database.connection import get_db
+from ..database.connection import get_db
 from datetime import datetime, timedelta
 
 
