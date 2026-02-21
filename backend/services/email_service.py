@@ -53,13 +53,32 @@ class EmailService:
                 return True
             else:
                 # Production mode: send via SMTP
-                # 20-second timeout prevents blocking eventlet worker greenlets
-                with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=20) as server:
-                    server.starttls()
-                    server.login(self.sender_email, self.sender_password)
-                    server.send_message(msg)
-                logger.info(f"Email sent to {to_email}: {subject}")
-                return True
+                # Try STARTTLS (port 587) first, fall back to SSL (port 465)
+                sent = False
+                last_err = None
+                # --- Attempt 1: STARTTLS on configured port (default 587) ---
+                try:
+                    with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=20) as server:
+                        server.starttls()
+                        server.login(self.sender_email, self.sender_password)
+                        server.send_message(msg)
+                    sent = True
+                except Exception as starttls_err:
+                    last_err = starttls_err
+                    logger.warning(f"STARTTLS failed ({self.smtp_port}): {starttls_err} — trying SSL:465")
+                # --- Attempt 2: SMTP_SSL on port 465 ---
+                if not sent:
+                    try:
+                        with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=20) as server:
+                            server.login(self.sender_email, self.sender_password)
+                            server.send_message(msg)
+                        sent = True
+                    except Exception as ssl_err:
+                        logger.error(f"SSL:465 also failed: {ssl_err} (original error: {last_err})")
+                if sent:
+                    logger.info(f"Email sent to {to_email}: {subject}")
+                    return True
+                raise last_err or Exception("All SMTP attempts failed")
                 
         except Exception as e:
             logger.error(f"Error sending email to {to_email}: {str(e)}")

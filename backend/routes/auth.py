@@ -209,22 +209,28 @@ def register_request():
         # Send OTP via email
         from ..services.email_service import email_service
         email_sent = email_service.send_registration_otp_email(email, otp, name)
-        
+
         if email_sent:
             logger.info(f"Registration OTP sent to {email}")
-            response_data = {
-                'message': 'Verification code sent to your email',
-                'email': email,
-                'expires_in': OTP_EXPIRY_MINUTES
-            }
-            # Include OTP in dev mode for testing
-            if DEV_MODE:
-                response_data['dev_otp'] = otp
-                logger.info(f"[DEV MODE] Registration OTP for {email}: {otp}")
-            return jsonify(response_data), 200
         else:
-            logger.error(f"Failed to send registration OTP to {email}")
+            logger.warning(f"Email delivery failed for {email} (OTP still stored in DB)")
+
+        response_data = {
+            'message': 'Verification code sent to your email' if email_sent else 'OTP generated — check your inbox (delivery may be delayed)',
+            'email': email,
+            'expires_in': OTP_EXPIRY_MINUTES
+        }
+        # In dev/non-production mode always return OTP so flow can be tested
+        # even when SMTP is unavailable (e.g. Render free tier)
+        if DEV_MODE:
+            response_data['dev_otp'] = otp
+            logger.info(f"[DEV MODE] Registration OTP for {email}: {otp}")
+
+        if not email_sent and not DEV_MODE:
+            # Strict production: fail so user knows email wasn't delivered
             return jsonify({'error': 'Failed to send verification email. Please try again.'}), 500
+
+        return jsonify(response_data), 200
         
     except Exception as e:
         logger.error(f"Error in register_request: {str(e)}")
@@ -388,19 +394,19 @@ def register_resend():
         # Send OTP via email
         from ..services.email_service import email_service
         email_sent = email_service.send_registration_otp_email(email, otp, pending['name'])
-        
-        if email_sent:
-            response_data = {
-                'message': 'New verification code sent',
-                'expires_in': OTP_EXPIRY_MINUTES
-            }
-            # Include OTP in dev mode for testing
-            if DEV_MODE:
-                response_data['dev_otp'] = otp
-                logger.info(f"[DEV MODE] Resend Registration OTP for {email}: {otp}")
-            return jsonify(response_data), 200
-        else:
+
+        response_data = {
+            'message': 'New verification code sent' if email_sent else 'OTP refreshed — check your inbox (delivery may be delayed)',
+            'expires_in': OTP_EXPIRY_MINUTES
+        }
+        if DEV_MODE:
+            response_data['dev_otp'] = otp
+            logger.info(f"[DEV MODE] Resend Registration OTP for {email}: {otp}")
+
+        if not email_sent and not DEV_MODE:
             return jsonify({'error': 'Failed to send email'}), 500
+
+        return jsonify(response_data), 200
         
     except Exception as e:
         logger.error(f"Error in register_resend: {str(e)}")
