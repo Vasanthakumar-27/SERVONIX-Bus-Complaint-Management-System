@@ -1,3 +1,8 @@
+# Temporary scratch files
+temp_*.html
+temp_*.css
+generate_keys.py
+
 # Python
 __pycache__/
 *.py[cod]
