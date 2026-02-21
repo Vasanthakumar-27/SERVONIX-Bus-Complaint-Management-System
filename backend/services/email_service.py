@@ -58,7 +58,7 @@ class EmailService:
                 last_err = None
                 # --- Attempt 1: STARTTLS on configured port (default 587) ---
                 try:
-                    with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=20) as server:
+                    with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=8) as server:
                         server.starttls()
                         server.login(self.sender_email, self.sender_password)
                         server.send_message(msg)
@@ -69,7 +69,7 @@ class EmailService:
                 # --- Attempt 2: SMTP_SSL on port 465 ---
                 if not sent:
                     try:
-                        with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=20) as server:
+                        with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=8) as server:
                             server.login(self.sender_email, self.sender_password)
                             server.send_message(msg)
                         sent = True

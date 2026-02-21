@@ -5,6 +5,7 @@ import secrets
 import hashlib
 import hmac
 import os
+import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
@@ -206,29 +207,24 @@ def register_request():
         cursor.close()
         conn.close()
         
-        # Send OTP via email
+        # Send OTP via email asynchronously so the HTTP response is not blocked
+        # by SMTP timeouts (critical on Render free tier)
         from ..services.email_service import email_service
-        email_sent = email_service.send_registration_otp_email(email, otp, name)
-
-        if email_sent:
-            logger.info(f"Registration OTP sent to {email}")
-        else:
-            logger.warning(f"Email delivery failed for {email} (OTP still stored in DB)")
+        threading.Thread(
+            target=email_service.send_registration_otp_email,
+            args=(email, otp, name),
+            daemon=True
+        ).start()
+        logger.info(f"Registration OTP email dispatched (async) to {email}")
 
         response_data = {
-            'message': 'Verification code sent to your email' if email_sent else 'OTP generated — check your inbox (delivery may be delayed)',
+            'message': 'Verification code sent to your email',
             'email': email,
             'expires_in': OTP_EXPIRY_MINUTES
         }
-        # In dev/non-production mode always return OTP so flow can be tested
-        # even when SMTP is unavailable (e.g. Render free tier)
         if DEV_MODE:
             response_data['dev_otp'] = otp
             logger.info(f"[DEV MODE] Registration OTP for {email}: {otp}")
-
-        if not email_sent and not DEV_MODE:
-            # Strict production: fail so user knows email wasn't delivered
-            return jsonify({'error': 'Failed to send verification email. Please try again.'}), 500
 
         return jsonify(response_data), 200
         
@@ -391,20 +387,21 @@ def register_resend():
         cursor.close()
         conn.close()
         
-        # Send OTP via email
+        # Send OTP via email asynchronously
         from ..services.email_service import email_service
-        email_sent = email_service.send_registration_otp_email(email, otp, pending['name'])
+        threading.Thread(
+            target=email_service.send_registration_otp_email,
+            args=(email, otp, pending['name']),
+            daemon=True
+        ).start()
 
         response_data = {
-            'message': 'New verification code sent' if email_sent else 'OTP refreshed — check your inbox (delivery may be delayed)',
+            'message': 'New verification code sent',
             'expires_in': OTP_EXPIRY_MINUTES
         }
         if DEV_MODE:
             response_data['dev_otp'] = otp
             logger.info(f"[DEV MODE] Resend Registration OTP for {email}: {otp}")
-
-        if not email_sent and not DEV_MODE:
-            return jsonify({'error': 'Failed to send email'}), 500
 
         return jsonify(response_data), 200
         
@@ -577,26 +574,24 @@ def request_otp():
         cursor.close()
         conn.close()
         
-        # Send OTP via email (plain OTP, not hash)
+        # Send OTP via email asynchronously
         from ..services.email_service import email_service
-        email_sent = email_service.send_otp_email(email, otp, user['name'])
-        
-        if email_sent:
-            logger.info(f"Password reset OTP sent to {email} from IP {client_ip}")
-            response_data = {
-                'message': 'OTP sent successfully to your email',
-                'email': email,
-                'expires_in': OTP_EXPIRY_MINUTES,
-                'requests_remaining': remaining
-            }
-            # Include OTP in dev mode for testing
-            if DEV_MODE:
-                response_data['dev_otp'] = otp
-                logger.info(f"[DEV MODE] Password Reset OTP for {email}: {otp}")
-            return jsonify(response_data), 200
-        else:
-            logger.error(f"Failed to send OTP email to {email}")
-            return jsonify({'error': 'Failed to send OTP email. Please try again.'}), 500
+        threading.Thread(
+            target=email_service.send_otp_email,
+            args=(email, otp, user['name']),
+            daemon=True
+        ).start()
+        logger.info(f"Password reset OTP email dispatched (async) to {email} from IP {client_ip}")
+        response_data = {
+            'message': 'OTP sent successfully to your email',
+            'email': email,
+            'expires_in': OTP_EXPIRY_MINUTES,
+            'requests_remaining': remaining
+        }
+        if DEV_MODE:
+            response_data['dev_otp'] = otp
+            logger.info(f"[DEV MODE] Password Reset OTP for {email}: {otp}")
+        return jsonify(response_data), 200
         
     except Exception as e:
         logger.error(f"Error in request_otp: {str(e)}")
