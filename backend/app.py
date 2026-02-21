@@ -73,11 +73,11 @@ def create_app():
     })
     
     # Initialize SocketIO with proper WebSocket support
-    # Use gevent async worker (Gunicorn + gevent recommended for production).
+    # Use eventlet async worker for production WebSocket support
     # Use same allowed origins for Socket.IO (avoid wildcard in production)
     socketio = SocketIO(
         app,
-        async_mode='gevent',
+        async_mode='eventlet',
         cors_allowed_origins=_allowed_origins,
         ping_timeout=60,
         ping_interval=25,
