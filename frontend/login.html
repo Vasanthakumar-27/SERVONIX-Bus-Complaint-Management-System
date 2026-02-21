@@ -1175,11 +1175,28 @@
                 hideLoading();
 
                 if (response.ok) {
-                    showAlert('✅ Verification code sent to your email!', 'success');
                     document.getElementById('regOtpStep1').style.display = 'none';
                     document.getElementById('regOtpStep2').style.display = 'block';
                     document.getElementById('regOtpInput').focus();
-                    
+
+                    // If backend returned dev_otp (no email service configured), auto-fill and show it
+                    if (data.dev_otp) {
+                        document.getElementById('regOtpInput').value = data.dev_otp;
+                        // Insert a visible dev-OTP banner above the OTP input
+                        const existingBanner = document.getElementById('devOtpBanner');
+                        if (!existingBanner) {
+                            const banner = document.createElement('div');
+                            banner.id = 'devOtpBanner';
+                            banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;text-align:center;';
+                            banner.innerHTML = `<strong>📧 Email not configured</strong> — your OTP is: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`;
+                            const otpInput = document.getElementById('regOtpInput');
+                            otpInput.parentNode.insertBefore(banner, otpInput);
+                        }
+                        showAlert('⚠️ Email service not set up — OTP shown below for testing', 'warning');
+                    } else {
+                        showAlert('✅ Verification code sent to your email!', 'success');
+                    }
+
                     // Start countdown timer
                     startRegOTPTimer();
                 } else if (response.status === 409) {
@@ -1528,11 +1545,27 @@
                 hideLoading();
 
                 if (response.ok) {
-                    showAlert('✅ OTP sent to your email!', 'success');
                     document.getElementById('otpStep1').style.display = 'none';
                     document.getElementById('otpStep2').style.display = 'block';
                     document.getElementById('otpInput').focus();
-                    
+
+                    // If backend returned dev_otp (no email service configured), auto-fill and show it
+                    if (data.dev_otp) {
+                        document.getElementById('otpInput').value = data.dev_otp;
+                        const existingBanner = document.getElementById('devOtpBannerPwd');
+                        if (!existingBanner) {
+                            const banner = document.createElement('div');
+                            banner.id = 'devOtpBannerPwd';
+                            banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;text-align:center;';
+                            banner.innerHTML = `<strong>📧 Email not configured</strong> — your OTP is: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`;
+                            const otpInput = document.getElementById('otpInput');
+                            otpInput.parentNode.insertBefore(banner, otpInput);
+                        }
+                        showAlert('⚠️ Email service not set up — OTP shown below for testing', 'warning');
+                    } else {
+                        showAlert('✅ OTP sent to your email!', 'success');
+                    }
+
                     // Start countdown timer (5 minutes)
                     startOTPTimer();
                     

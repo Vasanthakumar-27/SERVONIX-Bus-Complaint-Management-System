@@ -28,6 +28,12 @@ OTP_LENGTH = 6
 # Dev mode - shows OTP in response for testing (set to False in production)
 DEV_MODE = os.environ.get('FLASK_ENV', 'development') == 'development'
 
+# If no real email service is configured (no Resend key, no SMTP password),
+# ALWAYS return dev_otp so users can still register/reset passwords.
+# This is a safety net until a transactional email service is connected.
+_EMAIL_CONFIGURED = bool(os.environ.get('RESEND_API_KEY', '')) or bool(os.environ.get('EMAIL_PASSWORD', ''))
+SHOW_DEV_OTP = DEV_MODE or not _EMAIL_CONFIGURED
+
 # Email validation regex
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
@@ -222,9 +228,9 @@ def register_request():
             'email': email,
             'expires_in': OTP_EXPIRY_MINUTES
         }
-        if DEV_MODE:
+        if SHOW_DEV_OTP:
             response_data['dev_otp'] = otp
-            logger.info(f"[DEV MODE] Registration OTP for {email}: {otp}")
+            logger.info(f"[DEV OTP] Registration OTP for {email}: {otp}")
 
         return jsonify(response_data), 200
         
@@ -399,9 +405,9 @@ def register_resend():
             'message': 'New verification code sent',
             'expires_in': OTP_EXPIRY_MINUTES
         }
-        if DEV_MODE:
+        if SHOW_DEV_OTP:
             response_data['dev_otp'] = otp
-            logger.info(f"[DEV MODE] Resend Registration OTP for {email}: {otp}")
+            logger.info(f"[DEV OTP] Resend Registration OTP for {email}: {otp}")
 
         return jsonify(response_data), 200
         
@@ -588,9 +594,9 @@ def request_otp():
             'expires_in': OTP_EXPIRY_MINUTES,
             'requests_remaining': remaining
         }
-        if DEV_MODE:
+        if SHOW_DEV_OTP:
             response_data['dev_otp'] = otp
-            logger.info(f"[DEV MODE] Password Reset OTP for {email}: {otp}")
+            logger.info(f"[DEV OTP] Password Reset OTP for {email}: {otp}")
         return jsonify(response_data), 200
         
     except Exception as e:
