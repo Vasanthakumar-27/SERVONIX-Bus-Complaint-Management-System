@@ -1,11 +1,16 @@
 """Email service for sending OTP, notifications, and messages"""
 import os
 import time
+import json
 import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+try:
+    import requests as _requests
+except ImportError:
+    _requests = None
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -19,11 +24,52 @@ class EmailService:
         self.sender_password = os.environ.get('EMAIL_PASSWORD', '')
         self.smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
         self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
-        self.development_mode = not bool(self.sender_password)
-        
-        if self.development_mode:
+        # Resend HTTPS API key (preferred on Render — bypasses blocked SMTP ports)
+        self.resend_api_key = os.environ.get('RESEND_API_KEY', '')
+        # From address for Resend: override via RESEND_FROM env var.
+        # Default is Resend's shared sandbox address (works without domain verify).
+        self.resend_from = os.environ.get('RESEND_FROM', f'SERVONIX <onboarding@resend.dev>')
+        # Development mode: no password AND no Resend key
+        self.development_mode = not bool(self.sender_password) and not bool(self.resend_api_key)
+
+        if self.resend_api_key:
+            logger.info("Email service using Resend HTTPS API")
+        elif self.sender_password:
+            logger.info("Email service using SMTP")
+        else:
             logger.warning("Email service running in DEVELOPMENT MODE - emails will be logged to console and to file")
     
+    def _send_via_resend(self, to_email, subject, html_body):
+        """Send email via Resend HTTPS API (works on Render free tier)"""
+        if _requests is None:
+            logger.error("requests library not installed - cannot use Resend API")
+            return False
+        try:
+            payload = {
+                "from": self.resend_from,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_body,
+            }
+            resp = _requests.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {self.resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+                data=json.dumps(payload),
+                timeout=15,
+            )
+            if resp.status_code in (200, 201):
+                logger.info(f"[Resend] Email sent to {to_email}: {subject}")
+                return True
+            else:
+                logger.error(f"[Resend] Failed ({resp.status_code}): {resp.text}")
+                return False
+        except Exception as e:
+            logger.error(f"[Resend] Exception sending to {to_email}: {e}")
+            return False
+
     def _send_email(self, to_email, subject, html_body):
         """Internal method to send email"""
         try:
@@ -32,7 +78,12 @@ class EmailService:
             msg['From'] = f"SERVONIX <{self.sender_email}>"
             msg['To'] = to_email
             msg.attach(MIMEText(html_body, 'html'))
-            
+
+            # --- Priority 1: Resend HTTPS API (Render-compatible) ---
+            if self.resend_api_key:
+                return self._send_via_resend(to_email, subject, html_body)
+
+            # --- Priority 2: Development mode (no credentials) ---
             if self.development_mode:
                 # Development mode: log to console and append to a local email log file
                 logger.warning(f"[DEV MODE] Email to {to_email}: {subject}")
@@ -51,6 +102,7 @@ class EmailService:
                 except Exception:
                     logger.exception('Failed to write dev email log')
                 return True
+            # --- Priority 3: SMTP (local dev with credentials) ---
             else:
                 # Production mode: send via SMTP
                 # Try STARTTLS (port 587) first, fall back to SSL (port 465)
