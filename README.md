@@ -94,11 +94,11 @@ For **detailed instructions, troubleshooting, and Windows/Mac/Linux specific ste
 
 ### 🔐 Demo Credentials
 
-| Role | Email | Password |
-|------|-------|----------|
-| User | user@example.com | userpassword |
-| Admin | admin@example.com | adminpassword |
-| Head Admin | head@example.com | headpassword |
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| **Head Admin** | head@servonix.com | Head@1234 | Auto-created on first startup |
+| User | *(register via signup)* | — | OTP verified registration |
+| Admin | *(created by Head Admin)* | — | Head Admin → Create Admin |
 
 ---
 

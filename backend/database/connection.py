@@ -3,6 +3,7 @@ import sqlite3
 import os
 import time
 from datetime import datetime
+from werkzeug.security import generate_password_hash
 
 # Database file path - in project root /data directory (matching config.py)
 # __file__ = backend/database/connection.py
@@ -395,7 +396,22 @@ def init_db():
     cursor.execute('''
     CREATE INDEX IF NOT EXISTS idx_admin_logs_created_at ON admin_logs (created_at)
     ''')
-    
+
+    # -----------------------------------------------------------------
+    # Seed default head admin account (runs every startup; idempotent)
+    # Credentials:  head@servonix.com / Head@1234
+    # Change the password immediately after first login.
+    # -----------------------------------------------------------------
+    cursor.execute("SELECT id FROM users WHERE role = 'head' LIMIT 1")
+    if not cursor.fetchone():
+        head_hash = generate_password_hash('Head@1234')
+        cursor.execute(
+            """INSERT INTO users (name, email, password_hash, role, is_active)
+               VALUES (?, ?, ?, 'head', 1)""",
+            ('Head Admin', 'head@servonix.com', head_hash)
+        )
+        print("[DB SEED] Default head admin created: head@servonix.com / Head@1234")
+
     conn.commit()
     conn.close()
     print("Database initialized successfully")
