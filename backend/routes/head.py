@@ -516,16 +516,10 @@ def get_head_complaints():
 
         query = """
             SELECT c.*, u.name as username, u.email, u.phone,
-                   COALESCE(a.name, ra.admin_name) as admin_username
+                   a.name as admin_username
             FROM complaints c
             LEFT JOIN users u ON c.user_id = u.id
             LEFT JOIN users a ON c.assigned_to = a.id AND a.role = 'admin'
-            LEFT JOIN (
-                SELECT aa.route_id, u2.name as admin_name
-                FROM admin_assignments aa
-                JOIN users u2 ON aa.admin_id = u2.id
-                WHERE u2.is_active = 1
-            ) ra ON c.route_id = ra.route_id
         """
         conditions = []
         params = []
@@ -923,13 +917,13 @@ def export_complaints_pdf():
             SELECT 
                 c.id,
                 c.bus_number,
-                c.category,
+                c.complaint_type as category,
                 c.description,
                 c.status,
                 c.created_at,
                 u.name as user_name,
                 u.email as user_email,
-                c.route as route_name
+                c.route_number as route_name
             FROM complaints c
             LEFT JOIN users u ON c.user_id = u.id
             ORDER BY c.created_at DESC

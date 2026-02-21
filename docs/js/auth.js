@@ -1,18 +1,24 @@
 // API Base URL - Auto-detect based on current host
-var API_BASE;
-if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
-    API_BASE = 'http://127.0.0.1:5000';
-} else if (window.location.hostname.includes('devtunnels.ms')) {
-    // DevTunnel support for public access
-    API_BASE = `https://${window.location.hostname}`;
-} else if (window.location.protocol === 'https:') {
-    // HTTPS support for production
-    API_BASE = `https://${window.location.hostname}:5000`;
-} else {
-    // Local network HTTP
-    API_BASE = `http://${window.location.hostname}:5000`;
+// If config.js already set window.API_BASE (loaded first), respect it.
+var API_BASE = window.API_BASE;
+if (!API_BASE) {
+    if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.hostname === '') {
+        API_BASE = 'http://127.0.0.1:5000';
+    } else if (window.location.hostname.includes('devtunnels.ms')) {
+        // DevTunnel support for public access
+        API_BASE = `https://${window.location.hostname}`;
+    } else if (window.location.hostname.includes('github.io') || window.location.hostname.includes('onrender.com')) {
+        // GitHub Pages / Render frontend → Render backend
+        API_BASE = 'https://servonix-bus-complaint-management-system.onrender.com';
+    } else if (window.location.protocol === 'https:') {
+        // HTTPS on a custom domain — assume backend is same host
+        API_BASE = `https://${window.location.hostname}`;
+    } else {
+        // Local network HTTP
+        API_BASE = `http://${window.location.hostname}:5000`;
+    }
+    window.API_BASE = API_BASE;
 }
-window.API_BASE = API_BASE;
 // Helpful debug: expose and log API base so you can confirm frontend->backend connection
 console.log('[auth.js] API_BASE =', API_BASE);
 

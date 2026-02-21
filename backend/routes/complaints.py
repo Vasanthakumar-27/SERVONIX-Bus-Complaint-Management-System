@@ -232,57 +232,56 @@ def list_complaints():
     conn = get_db()
     cursor = conn.cursor()
     
-    base = """
-        SELECT c.*, u.name as user_name, u.email as user_email,
-               COALESCE(a.name, ra.admin_name) as admin_name
-        FROM complaints c
-        LEFT JOIN users u ON c.user_id = u.id
-        LEFT JOIN users a ON c.assigned_to = a.id
-        LEFT JOIN (
-            SELECT aa.route_id, u2.name as admin_name
-            FROM admin_assignments aa
-            JOIN users u2 ON aa.admin_id = u2.id
-            WHERE u2.is_active = 1
-        ) ra ON c.route_id = ra.route_id
-    """
-    
-    conds = []
-    vals = []
-    
-    # ===== STRICT ASSIGNMENT FILTERING =====
-    # Regular admins ONLY see complaints assigned to them
-    # Head admins can see all complaints (including unassigned)
-    if user.get('role') == 'admin':
-        conds.append('c.assigned_to = ?')
-        vals.append(user['id'])
-    elif user.get('role') == 'head' and show_unassigned:
-        # Head admin can request to see only unassigned complaints
-        conds.append('c.assigned_to IS NULL')
-    # If head admin without unassigned filter, show all complaints
-    
-    if status:
-        conds.append('c.status=?')
-        vals.append(status)
-    
-    if q:
-        conds.append('(c.description LIKE ? OR c.complaint_type LIKE ? OR c.bus_number LIKE ?)')
-        vals.extend(['%' + q + '%'] * 3)
-    
-    if conds:
-        base += ' WHERE ' + ' AND '.join(conds)
-    base += ' ORDER BY c.created_at DESC'
-    
-    cursor.execute(base, vals)
-    rows = cursor.fetchall()
-    
-    complaints = [dict(row) for row in rows]
-    
-    # Enrich with media files
-    complaints = enrich_complaints_with_media(cursor, complaints)
-    
-    cursor.close()
-    conn.close()
-    return jsonify({'complaints': complaints})
+    try:
+        base = """
+            SELECT c.*, u.name as user_name, u.email as user_email,
+                   a.name as admin_name
+            FROM complaints c
+            LEFT JOIN users u ON c.user_id = u.id
+            LEFT JOIN users a ON c.assigned_to = a.id
+        """
+        
+        conds = []
+        vals = []
+        
+        # ===== STRICT ASSIGNMENT FILTERING =====
+        # Regular admins ONLY see complaints assigned to them
+        # Head admins can see all complaints (including unassigned)
+        if user.get('role') == 'admin':
+            conds.append('c.assigned_to = ?')
+            vals.append(user['id'])
+        elif user.get('role') == 'head' and show_unassigned:
+            # Head admin can request to see only unassigned complaints
+            conds.append('c.assigned_to IS NULL')
+        # If head admin without unassigned filter, show all complaints
+        
+        if status:
+            conds.append('c.status=?')
+            vals.append(status)
+        
+        if q:
+            conds.append('(c.description LIKE ? OR c.complaint_type LIKE ? OR c.bus_number LIKE ?)')
+            vals.extend(['%' + q + '%'] * 3)
+        
+        if conds:
+            base += ' WHERE ' + ' AND '.join(conds)
+        base += ' ORDER BY c.created_at DESC'
+        
+        cursor.execute(base, vals)
+        rows = cursor.fetchall()
+        
+        complaints = [dict(row) for row in rows]
+        
+        # Enrich with media files
+        complaints = enrich_complaints_with_media(cursor, complaints)
+        
+        return jsonify({'complaints': complaints})
+    except Exception as e:
+        logger.error(f"Error listing complaints: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to fetch complaints', 'detail': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @complaints_bp.route('/user/complaints', methods=['GET'])
@@ -382,22 +381,11 @@ def get_complaint_detail(complaint_id):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT c.*, u.name as user_name, u.email as user_email, 
-               COALESCE(a.name, ra.admin_name) as admin_name,
-               COALESCE(d.name, rd.name) as district_name,
-               r.name as route_name
+        SELECT c.*, u.name as user_name, u.email as user_email,
+               a.name as admin_name
         FROM complaints c
         LEFT JOIN users u ON c.user_id = u.id
         LEFT JOIN users a ON c.assigned_to = a.id
-        LEFT JOIN districts d ON c.district_id = d.id
-        LEFT JOIN routes r ON c.route = r.name OR c.route_id = r.id
-        LEFT JOIN districts rd ON r.district_id = rd.id
-        LEFT JOIN (
-            SELECT aa.route_id, u2.name as admin_name
-            FROM admin_assignments aa
-            JOIN users u2 ON aa.admin_id = u2.id
-            WHERE u2.is_active = 1
-        ) ra ON c.route_id = ra.route_id
         WHERE c.id = ?
     """, (complaint_id,))
     
