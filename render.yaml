@@ -4,8 +4,11 @@ services:
     runtime: python
     region: singapore   # closest to India; change to oregon/frankfurt if preferred
     plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    # Run from repository root so `backend` is importable as a package
+    rootDir: .
+    # Install backend requirements from the backend folder
+    buildCommand: pip install -r backend/requirements.txt
+    # Start using gunicorn with eventlet but ensure backend package is importable
     startCommand: gunicorn -k eventlet -w 1 backend.wsgi:app --bind 0.0.0.0:$PORT
     envVars:
       - key: SECRET_KEY
