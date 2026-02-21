@@ -23,6 +23,6 @@ ENV PYTHONUNBUFFERED=1
 # Expose default port
 EXPOSE 5000
 
-# Change to backend directory and run with Python (socketio.run handles everything)
-WORKDIR /app/backend
-CMD ["python", "app.py"]
+# Stay in /app directory and run backend as a module (fixes relative imports)
+WORKDIR /app
+CMD ["python", "-m", "backend.app"]
