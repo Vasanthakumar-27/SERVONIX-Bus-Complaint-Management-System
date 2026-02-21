@@ -4,6 +4,7 @@ import sys
 import logging
 from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
+from flask_talisman import Talisman
 from flask_socketio import SocketIO
 
 # Add backend directory to path
@@ -40,18 +41,20 @@ def create_app():
     app.config['SECRET_KEY'] = config.SECRET_KEY
     app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max upload
     
-    # CORS configuration - Allow localhost, local network, GitHub Pages, and Render
-    _frontend_url = os.environ.get('FRONTEND_URL', '')
-    _allowed_origins = [
-        "http://localhost:*",
-        "http://127.0.0.1:*",
-        "http://192.168.*.*:*",
-        "http://10.*.*.*:*",
-        r"https://.*\.onrender\.com",      # any Render preview/deploy URL
-        r"https://.*\.github\.io",         # any GitHub Pages URL
-    ]
+    # CORS configuration - prefer an explicit FRONTEND_URL; fallback to safe defaults
+    _frontend_url = os.environ.get('FRONTEND_URL', '').strip()
+    _allowed_origins = []
     if _frontend_url:
         _allowed_origins.append(_frontend_url)
+    else:
+        # development and common hosting fallbacks
+        _allowed_origins = [
+            "http://localhost",
+            "http://127.0.0.1",
+            "http://[::1]",
+            r"https://.*\.github\.io",
+            r"https://.*\.onrender\.com",
+        ]
 
     CORS(app, resources={
         r"/api/*": {
@@ -71,10 +74,11 @@ def create_app():
     
     # Initialize SocketIO with proper WebSocket support
     # Use gevent async worker (Gunicorn + gevent recommended for production).
+    # Use same allowed origins for Socket.IO (avoid wildcard in production)
     socketio = SocketIO(
         app,
         async_mode='gevent',
-        cors_allowed_origins="*",
+        cors_allowed_origins=_allowed_origins,
         ping_timeout=60,
         ping_interval=25,
         logger=False,
@@ -223,16 +227,17 @@ def create_app():
         """API health check endpoint"""
         return {'status': 'healthy', 'service': 'SERVONIX API'}, 200
     
-    # Security headers and CORS middleware
+    # Apply Talisman for security headers (HSTS, CSP control) and also set a few custom headers
+    try:
+        # Use a permissive CSP=None so we don't break existing inline scripts; projects can tighten this later
+        Talisman(app, content_security_policy=None, force_https=False)
+    except Exception:
+        logger.exception('Failed to initialize Talisman')
+
     @app.after_request
     def set_security_headers(response):
-        """Add security headers to all responses"""
-        # CORS is handled by Flask-CORS extension
-        
-        # Security headers
+        """Add additional security headers to all responses"""
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'SAMEORIGIN'  # Changed from DENY to allow iframes if needed
-        response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         return response
     
