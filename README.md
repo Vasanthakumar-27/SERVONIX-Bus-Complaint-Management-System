@@ -377,3 +377,49 @@ Built with:
 
 *Last updated: February 7, 2026*
 *SERVONIX v1.0 - Production Ready*
+
+---
+
+## Debugging & SMTP
+
+Short instructions to debug OTP/email delivery and enable production SMTP.
+
+- **View service health** (local or deployed):
+
+```bash
+# Local health check
+curl -sS http://localhost:5000/api/health
+
+# Deployed (replace with your URL)
+curl -sS https://your-deploy-url.example.com/api/health
+```
+
+- **Use the protected debug endpoint** `/debug/status` to inspect DB objects and the recent development email log. Set a `DEBUG_API_KEY` environment variable on the server and call with header `X-DEBUG-KEY`:
+
+```bash
+curl -H "X-DEBUG-KEY: $DEBUG_API_KEY" \
+	https://your-deploy-url.example.com/debug/status
+```
+
+- **Dev email log (when SMTP not configured)**:
+	- Dev emails (OTPs) are appended to `backend/logs/email_dev.log` and also printed to server logs. On Render or Docker, check that file or view service logs.
+
+- **Enable production email (SMTP)**:
+	1. Add these environment variables to your host (Render, Heroku, Docker env, etc.):
+
+```env
+EMAIL_SENDER=your-email@example.com
+EMAIL_PASSWORD=<smtp-or-app-password>
+SMTP_SERVER=smtp.example.com
+SMTP_PORT=587
+```
+
+ 2. Restart the service after adding env vars.
+ 3. Trigger an OTP (e.g., request registration or password reset via the frontend) and verify delivery.
+
+- **Common checks if OTP not received**:
+	- Verify `EMAIL_SENDER` and `EMAIL_PASSWORD` are correct (use provider app passwords when required).
+	- Check spam folder and provider sending limits.
+	- Inspect `backend/logs/email_dev.log` and server logs for SMTP errors.
+
+If you want, I can guide you through setting the env variables on Render and then verify OTP delivery from here.
