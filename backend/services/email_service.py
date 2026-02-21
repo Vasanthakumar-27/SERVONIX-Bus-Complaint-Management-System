@@ -1,5 +1,6 @@
 """Email service for sending OTP, notifications, and messages"""
 import os
+import time
 import logging
 import smtplib
 from email.mime.text import MIMEText
@@ -52,7 +53,8 @@ class EmailService:
                 return True
             else:
                 # Production mode: send via SMTP
-                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                # 20-second timeout prevents blocking eventlet worker greenlets
+                with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=20) as server:
                     server.starttls()
                     server.login(self.sender_email, self.sender_password)
                     server.send_message(msg)
