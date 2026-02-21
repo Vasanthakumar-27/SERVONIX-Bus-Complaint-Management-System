@@ -1,35 +1,4 @@
 name: Deploy to Render (manual)
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Log into GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
-
-      - name: Build and push image to GHCR
-        env:
-          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/servonix-backend
-        run: |
-          docker build -t $IMAGE_NAME:latest -f Dockerfile .
-          echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker push $IMAGE_NAME:latest
-
-name: Deploy to Render (manual)
 on:
   workflow_dispatch:
 
@@ -72,4 +41,3 @@ jobs:
           else
             echo "Render secrets not configured, skipping deploy trigger"
           fi
-

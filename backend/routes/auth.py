@@ -8,10 +8,10 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
-from auth.utils import create_user, authenticate_user
-from utils.helpers import get_current_timestamp_for_db
-from utils.decorators import require_user_auth
-from database.connection import get_db
+from ..auth.utils import create_user, authenticate_user
+from ..utils.helpers import get_current_timestamp_for_db
+from ..utils.decorators import require_user_auth
+from ..database.connection import get_db
 import re
 
 logger = logging.getLogger(__name__)

@@ -12,7 +12,7 @@ NO BROADCASTS: Each complaint goes to ONE admin, not broadcast to multiple.
 NO WORKLOAD BALANCING: Routing is deterministic based on route assignment, not load.
 """
 import logging
-from database.connection import get_db
+from ..database.connection import get_db
 
 logger = logging.getLogger(__name__)
 

@@ -6,9 +6,9 @@ import uuid
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from database.connection import get_db
-from utils.decorators import require_user_auth
-from config import config
+from ..database.connection import get_db
+from ..utils.decorators import require_user_auth
+from ..config import config
 
 logger = logging.getLogger(__name__)
 

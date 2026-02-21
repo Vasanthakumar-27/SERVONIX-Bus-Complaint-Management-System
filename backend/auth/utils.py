@@ -4,7 +4,7 @@ import string
 import random
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.connection import get_db
+from ..database.connection import get_db
 
 
 def generate_token(length=64):

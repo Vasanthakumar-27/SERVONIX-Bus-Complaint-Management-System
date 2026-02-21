@@ -8,11 +8,11 @@ import sqlite3
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 
-from database.connection import get_db
-from utils.decorators import require_user_auth, require_admin_auth, require_head_auth
-from utils.helpers import format_datetime_for_db, get_file_mime_type, allowed_file
-from config import config
-from pdf_generator import generate_complaints_pdf, generate_complaint_detail_pdf
+from ..database.connection import get_db
+from ..utils.decorators import require_user_auth, require_admin_auth, require_head_auth
+from ..utils.helpers import format_datetime_for_db, get_file_mime_type, allowed_file
+from ..config import config
+from ..pdf_generator import generate_complaints_pdf, generate_complaint_detail_pdf
 
 logger = logging.getLogger(__name__)
 

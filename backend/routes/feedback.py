@@ -2,8 +2,8 @@
 from flask import Blueprint, request, jsonify
 import logging
 
-from database.connection import get_db
-from utils.decorators import require_user_auth, require_head_auth, require_admin_auth
+from ..database.connection import get_db
+from ..utils.decorators import require_user_auth, require_head_auth, require_admin_auth
 
 logger = logging.getLogger(__name__)
 

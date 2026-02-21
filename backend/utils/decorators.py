@@ -1,7 +1,7 @@
 """Authentication decorators"""
 from functools import wraps
 from flask import jsonify
-from auth.utils import require_role
+from ..auth.utils import require_role
 from .helpers import get_token_from_request
 
 

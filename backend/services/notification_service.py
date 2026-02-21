@@ -1,7 +1,7 @@
 """Role-based notification service with database storage and real-time delivery"""
 import logging
 from datetime import datetime
-from database.connection import get_db
+from ..database.connection import get_db
 
 logger = logging.getLogger(__name__)
 

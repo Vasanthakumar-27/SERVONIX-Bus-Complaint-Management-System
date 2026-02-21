@@ -7,10 +7,10 @@ import os
 import tempfile
 from datetime import datetime
 
-from database.connection import get_db
-from utils.decorators import require_head_auth
-from utils.helpers import clamp_limit
-from pdf_generator import generate_complaints_pdf, generate_users_pdf, generate_admin_pdf
+from ..database.connection import get_db
+from ..utils.decorators import require_head_auth
+from ..utils.helpers import clamp_limit
+from ..pdf_generator import generate_complaints_pdf, generate_users_pdf, generate_admin_pdf
 
 logger = logging.getLogger(__name__)
 
