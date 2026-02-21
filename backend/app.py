@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+from urllib.parse import urlparse
 from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
 from flask_talisman import Talisman
@@ -43,18 +44,20 @@ def create_app():
     
     # CORS configuration - prefer an explicit FRONTEND_URL; fallback to safe defaults
     _frontend_url = os.environ.get('FRONTEND_URL', '').strip()
-    _allowed_origins = []
+    _allowed_origins = [
+        "http://localhost",
+        "http://127.0.0.1",
+        "http://[::1]",
+        r"https://.*\.github\.io",
+        r"https://.*\.onrender\.com",
+    ]
+    
+    # Extract origin (scheme + domain) from FRONTEND_URL if provided
+    # CORS origins don't include paths!
     if _frontend_url:
-        _allowed_origins.append(_frontend_url)
-    else:
-        # development and common hosting fallbacks
-        _allowed_origins = [
-            "http://localhost",
-            "http://127.0.0.1",
-            "http://[::1]",
-            r"https://.*\.github\.io",
-            r"https://.*\.onrender\.com",
-        ]
+        parsed = urlparse(_frontend_url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        _allowed_origins.insert(0, origin)
 
     CORS(app, resources={
         r"/api/*": {
