@@ -23,5 +23,6 @@ ENV PYTHONUNBUFFERED=1
 # Expose default port
 EXPOSE 5000
 
-# Run Gunicorn with gevent worker (single worker required for Socket.IO)
-CMD ["gunicorn", "-k", "gevent", "-w", "1", "backend.wsgi:app", "--bind", "0.0.0.0:5000"]
+# Change to backend directory and run with Python (socketio.run handles everything)
+WORKDIR /app/backend
+CMD ["python", "app.py"]

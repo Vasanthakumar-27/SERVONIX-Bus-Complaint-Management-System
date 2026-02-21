@@ -30,7 +30,7 @@ jobs:
           docker push $IMAGE_NAME:latest
 
       - name: Trigger Render deploy
-        if: ${{ secrets.RENDER_API_KEY && secrets.RENDER_SERVICE_ID }}
+        if: secrets.RENDER_API_KEY != '' && secrets.RENDER_SERVICE_ID != ''
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
