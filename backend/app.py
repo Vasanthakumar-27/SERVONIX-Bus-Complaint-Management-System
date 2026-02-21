@@ -10,8 +10,8 @@ from flask_socketio import SocketIO
 # Add backend directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import config
-from database.connection import init_db
+from .config import config
+from .database.connection import init_db
 
 # Configure logging
 logging.basicConfig(
@@ -89,10 +89,10 @@ def create_app():
     init_db()
     
     # Initialize services
-    from services.file_service import FileService
-    from services.socketio_service import SocketIOService
-    from services.notification_service import NotificationService
-    from database.connection import get_db
+    from .services.file_service import FileService
+    from .services.socketio_service import SocketIOService
+    from .services.notification_service import NotificationService
+    from .database.connection import get_db
     
     file_service = FileService(config.UPLOAD_FOLDER)
     socketio_service = SocketIOService(socketio, get_db)
@@ -104,18 +104,18 @@ def create_app():
     app.config['notification_service'] = notification_service
     
     # Register blueprints
-    from routes.auth import auth_bp
-    from routes.complaints import complaints_bp
-    from routes.admin import admin_bp
-    from routes.user import user_bp
-    from routes.head import head_bp
-    from routes.feedback import feedback_bp
-    from routes.messaging import messaging_bp
-    from routes.districts import districts_bp
-    from routes.dashboard import dashboard_bp
-    from routes.admin_head_messaging import admin_head_bp
-    from routes.messages import messages_bp
-    from routes.debug import debug_bp
+    from .routes.auth import auth_bp
+    from .routes.complaints import complaints_bp
+    from .routes.admin import admin_bp
+    from .routes.user import user_bp
+    from .routes.head import head_bp
+    from .routes.feedback import feedback_bp
+    from .routes.messaging import messaging_bp
+    from .routes.districts import districts_bp
+    from .routes.dashboard import dashboard_bp
+    from .routes.admin_head_messaging import admin_head_bp
+    from .routes.messages import messages_bp
+    from .routes.debug import debug_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(complaints_bp)

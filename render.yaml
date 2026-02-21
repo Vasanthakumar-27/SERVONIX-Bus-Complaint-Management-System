@@ -6,7 +6,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k gevent -w 1 wsgi_render:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn -k eventlet -w 1 backend.wsgi:app --bind 0.0.0.0:$PORT
     envVars:
       - key: SECRET_KEY
         generateValue: true        # Render auto-generates a secure random value
