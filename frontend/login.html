@@ -836,6 +836,9 @@
             if (API_HOST.includes('devtunnels.ms')) {
                 // DevTunnel - no port needed
                 API_BASE_URL = `${API_PROTOCOL}//${API_HOST}`;
+            } else if (API_HOST.includes('github.io')) {
+                // GitHub Pages - use production backend
+                API_BASE_URL = 'https://servonix-bus-complaint-management-system.onrender.com';
             } else if (API_HOST === '127.0.0.1' || API_HOST === 'localhost') {
                 // Local development
                 API_BASE_URL = 'http://127.0.0.1:5000';

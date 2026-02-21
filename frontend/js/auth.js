@@ -5,6 +5,9 @@ if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'lo
 } else if (window.location.hostname.includes('devtunnels.ms')) {
     // DevTunnel support for public access
     API_BASE = `https://${window.location.hostname}`;
+} else if (window.location.hostname.includes('github.io')) {
+    // GitHub Pages - use production backend on Render
+    API_BASE = 'https://servonix-bus-complaint-management-system.onrender.com';
 } else if (window.location.protocol === 'https:') {
     // HTTPS support for production
     API_BASE = `https://${window.location.hostname}:5000`;

@@ -2009,6 +2009,8 @@
                 const hostname = window.location.hostname;
                 if (hostname.includes('devtunnels.ms')) {
                     return `${window.location.protocol}//${hostname}`;
+                } else if (hostname.includes('github.io')) {
+                    return 'https://servonix-bus-complaint-management-system.onrender.com';
                 }
                 return 'http://127.0.0.1:5000';
             })();

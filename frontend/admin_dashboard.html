@@ -3087,9 +3087,13 @@
 
         // API Base URL (only define if not already defined)
         if (typeof API_BASE === 'undefined') {
-            var API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://127.0.0.1:5000'
-                : '';
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                var API_BASE = 'http://127.0.0.1:5000';
+            } else if (window.location.hostname.includes('github.io')) {
+                var API_BASE = 'https://servonix-bus-complaint-management-system.onrender.com';
+            } else {
+                var API_BASE = '';
+            }
         }
 
         // Global variables
@@ -3841,6 +3845,8 @@
         function getAPIBase() {
             if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
                 return 'http://127.0.0.1:5000';
+            } else if (window.location.hostname.includes('github.io')) {
+                return 'https://servonix-bus-complaint-management-system.onrender.com';
             } else {
                 return `http://${window.location.hostname}:5000`;
             }
