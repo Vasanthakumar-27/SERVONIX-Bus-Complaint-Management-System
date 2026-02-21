@@ -253,23 +253,33 @@ SERVONIX uses **Socket.IO with eventlet** for instant communication:
 
 ### Environment Variables (`.env`)
 ```env
-# Database
-DB_HOST=127.0.0.1
-DB_USER=root
-DB_NAME=bus_complaints
+# Core
+SECRET_KEY=your-secret-key-here
+FRONTEND_URL=https://vasanthakumar-27.github.io/SERVONIX-Bus-Complaint-Management-System
 
-# Email (Gmail App Password required)
-EMAIL_SENDER=your-email@gmail.com
-EMAIL_PASSWORD=xxxx-xxxx-xxxx-xxxx
-
-# SMTP
+# Email/SMTP (Gmail App Password - see instructions below)
+EMAIL_SENDER=servonix70@gmail.com
+EMAIL_PASSWORD=your-16-char-app-password
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 
-# JWT
-SECRET_KEY=your-secret-key-here
-JWT_EXPIRATION_HOURS=24
+# Debug (optional)
+DEBUG_API_KEY=your-debug-key-here
+DEBUG=false
 ```
+
+### Gmail App Password Setup
+1. Go to: https://myaccount.google.com/apppasswords
+2. Sign in with your Gmail account
+3. Create a new app password:
+   - Select **Mail** from dropdown
+   - Select **Other** (custom name)
+   - Name it "SERVONIX SMTP"
+4. Click **Generate**
+5. Copy the 16-character password (format: `xxxx-xxxx-xxxx-xxxx`)
+6. Use this password for `EMAIL_PASSWORD` (remove spaces)
+
+**Note:** Regular Gmail passwords won't work. You MUST use an App Password.
 
 ### Database Files (Auto-Created)
 - `data/servonix.db` — SQLite database
@@ -390,36 +400,41 @@ Short instructions to debug OTP/email delivery and enable production SMTP.
 # Local health check
 curl -sS http://localhost:5000/api/health
 
-# Deployed (replace with your URL)
-curl -sS https://your-deploy-url.example.com/api/health
+# Deployed (Render)
+curl -sS https://servonix-bus-complaint-management-system.onrender.com/api/health
 ```
 
 - **Use the protected debug endpoint** `/debug/status` to inspect DB objects and the recent development email log. Set a `DEBUG_API_KEY` environment variable on the server and call with header `X-DEBUG-KEY`:
 
 ```bash
 curl -H "X-DEBUG-KEY: $DEBUG_API_KEY" \
-	https://your-deploy-url.example.com/debug/status
+	https://servonix-bus-complaint-management-system.onrender.com/debug/status
 ```
 
 - **Dev email log (when SMTP not configured)**:
 	- Dev emails (OTPs) are appended to `backend/logs/email_dev.log` and also printed to server logs. On Render or Docker, check that file or view service logs.
 
-- **Enable production email (SMTP)**:
-	1. Add these environment variables to your host (Render, Heroku, Docker env, etc.):
+- **Enable production email (SMTP with Gmail)**:
+	1. Get Gmail App Password: https://myaccount.google.com/apppasswords
+	2. Add these environment variables to Render:
 
 ```env
-EMAIL_SENDER=your-email@example.com
-EMAIL_PASSWORD=<smtp-or-app-password>
-SMTP_SERVER=smtp.example.com
+EMAIL_SENDER=servonix70@gmail.com
+EMAIL_PASSWORD=<16-char-app-password-no-spaces>
+SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 ```
 
- 2. Restart the service after adding env vars.
- 3. Trigger an OTP (e.g., request registration or password reset via the frontend) and verify delivery.
+ 3. Click "Save rebuild and deploy" in Render dashboard
+ 4. Wait 2-5 minutes for deployment to complete
+ 5. Trigger an OTP (register new account via frontend) and verify email delivery
 
 - **Common checks if OTP not received**:
-	- Verify `EMAIL_SENDER` and `EMAIL_PASSWORD` are correct (use provider app passwords when required).
-	- Check spam folder and provider sending limits.
-	- Inspect `backend/logs/email_dev.log` and server logs for SMTP errors.
+	- Verify `EMAIL_PASSWORD` is the 16-character Gmail App Password (not regular password)
+	- Remove spaces/dashes from app password when entering in Render
+	- Check spam/junk folder in recipient's inbox
+	- Gmail has daily sending limits for new accounts (wait 24h or verify account)
+	- Inspect Render logs for SMTP connection errors (Dashboard → Logs tab)
+	- Ensure `EMAIL_SENDER` matches the Gmail account that created the app password
 
-If you want, I can guide you through setting the env variables on Render and then verify OTP delivery from here.
+**Render Deployment:** See [docs/DEPLOYMENT_STATUS.md](docs/DEPLOYMENT_STATUS.md) for complete setup checklist.
