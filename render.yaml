@@ -9,7 +9,8 @@ services:
     # Install backend requirements from the backend folder
     buildCommand: pip install -r backend/requirements.txt
     # Start using gunicorn with eventlet but ensure backend package is importable
-    startCommand: gunicorn -k eventlet -w 1 backend.wsgi:app --bind 0.0.0.0:$PORT
+    # Use module execution as a reliable fallback for relative imports
+    startCommand: python -m backend.app
     envVars:
       - key: SECRET_KEY
         generateValue: true        # Render auto-generates a secure random value
