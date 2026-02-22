@@ -2828,7 +2828,7 @@
             showLoading(messagesContent, 'Loading messages...');
             
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/messages/admin/sent', {
+                const response = await fetch(`${getAPIBase()}/api/messages/admin/sent`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -2918,7 +2918,7 @@
             const select = document.getElementById('complaintLink');
             
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/admin/complaints', {
+                const response = await fetch(`${getAPIBase()}/api/admin/complaints`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -2957,7 +2957,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/messages/admin/send', {
+                const response = await fetch(`${getAPIBase()}/api/messages/admin/send`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -2993,7 +2993,7 @@
             const token = localStorage.getItem('token');
             
             try {
-                const response = await fetch(`http://127.0.0.1:5000/api/messages/admin/${messageId}`, {
+                const response = await fetch(`${getAPIBase()}/api/messages/admin/${messageId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
