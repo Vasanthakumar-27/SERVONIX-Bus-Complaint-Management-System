@@ -214,24 +214,41 @@ def register_request():
         cursor.close()
         conn.close()
         
-        # Send OTP via email asynchronously so the HTTP response is not blocked
-        # by SMTP timeouts (critical on Render free tier)
+        # Send OTP via email — strategy depends on configured email service:
+        # • Resend HTTPS API (fast): send synchronously so failures are detected
+        # • Dev mode (no credentials): sync log-only, OTP always returned in response
+        # • SMTP (slow): send async to avoid Render request-timeout
         from ..services.email_service import email_service
-        threading.Thread(
-            target=email_service.send_registration_otp_email,
-            args=(email, otp, name),
-            daemon=True
-        ).start()
-        logger.info(f"Registration OTP email dispatched (async) to {email}")
+        include_otp_in_response = SHOW_DEV_OTP
+        email_send_failed = False
+        if email_service.resend_api_key:
+            _ok = email_service.send_registration_otp_email(email, otp, name)
+            if not _ok:
+                include_otp_in_response = True
+                email_send_failed = True
+                logger.warning(f"[Resend] Registration OTP email failed for {email} — returning OTP in response")
+            else:
+                logger.info(f"[Resend] Registration OTP sent to {email}")
+        elif email_service.development_mode:
+            email_service.send_registration_otp_email(email, otp, name)  # logs to console/file
+        else:
+            threading.Thread(
+                target=email_service.send_registration_otp_email,
+                args=(email, otp, name),
+                daemon=True
+            ).start()
+            logger.info(f"[SMTP] Registration OTP email dispatched (async) to {email}")
 
         response_data = {
             'message': 'Verification code sent to your email',
             'email': email,
             'expires_in': OTP_EXPIRY_MINUTES
         }
-        if SHOW_DEV_OTP:
+        if include_otp_in_response:
             response_data['dev_otp'] = otp
-            logger.info(f"[DEV OTP] Registration OTP for {email}: {otp}")
+            if email_send_failed:
+                response_data['email_failed'] = True
+            logger.info(f"[OTP Response] Registration OTP for {email}: {otp}")
 
         return jsonify(response_data), 200
         
@@ -394,21 +411,34 @@ def register_resend():
         cursor.close()
         conn.close()
         
-        # Send OTP via email asynchronously
+        # Send OTP via email — same strategy as register_request
         from ..services.email_service import email_service
-        threading.Thread(
-            target=email_service.send_registration_otp_email,
-            args=(email, otp, pending['name']),
-            daemon=True
-        ).start()
+        include_otp_in_response = SHOW_DEV_OTP
+        email_send_failed = False
+        if email_service.resend_api_key:
+            _ok = email_service.send_registration_otp_email(email, otp, pending['name'])
+            if not _ok:
+                include_otp_in_response = True
+                email_send_failed = True
+                logger.warning(f"[Resend] Resend registration OTP failed for {email} — returning OTP in response")
+        elif email_service.development_mode:
+            email_service.send_registration_otp_email(email, otp, pending['name'])
+        else:
+            threading.Thread(
+                target=email_service.send_registration_otp_email,
+                args=(email, otp, pending['name']),
+                daemon=True
+            ).start()
 
         response_data = {
             'message': 'New verification code sent',
             'expires_in': OTP_EXPIRY_MINUTES
         }
-        if SHOW_DEV_OTP:
+        if include_otp_in_response:
             response_data['dev_otp'] = otp
-            logger.info(f"[DEV OTP] Resend Registration OTP for {email}: {otp}")
+            if email_send_failed:
+                response_data['email_failed'] = True
+            logger.info(f"[OTP Response] Resend registration OTP for {email}: {otp}")
 
         return jsonify(response_data), 200
         
@@ -581,23 +611,39 @@ def request_otp():
         cursor.close()
         conn.close()
         
-        # Send OTP via email asynchronously
+        # Send OTP via email — same strategy as register_request
         from ..services.email_service import email_service
-        threading.Thread(
-            target=email_service.send_otp_email,
-            args=(email, otp, user['name']),
-            daemon=True
-        ).start()
-        logger.info(f"Password reset OTP email dispatched (async) to {email} from IP {client_ip}")
+        include_otp_in_response = SHOW_DEV_OTP
+        email_send_failed = False
+        if email_service.resend_api_key:
+            _ok = email_service.send_otp_email(email, otp, user['name'])
+            if not _ok:
+                include_otp_in_response = True
+                email_send_failed = True
+                logger.warning(f"[Resend] Password reset OTP failed for {email} — returning OTP in response")
+            else:
+                logger.info(f"[Resend] Password reset OTP sent to {email} from IP {client_ip}")
+        elif email_service.development_mode:
+            email_service.send_otp_email(email, otp, user['name'])
+        else:
+            threading.Thread(
+                target=email_service.send_otp_email,
+                args=(email, otp, user['name']),
+                daemon=True
+            ).start()
+            logger.info(f"[SMTP] Password reset OTP email dispatched (async) to {email} from IP {client_ip}")
+
         response_data = {
             'message': 'OTP sent successfully to your email',
             'email': email,
             'expires_in': OTP_EXPIRY_MINUTES,
             'requests_remaining': remaining
         }
-        if SHOW_DEV_OTP:
+        if include_otp_in_response:
             response_data['dev_otp'] = otp
-            logger.info(f"[DEV OTP] Password Reset OTP for {email}: {otp}")
+            if email_send_failed:
+                response_data['email_failed'] = True
+            logger.info(f"[OTP Response] Password reset OTP for {email}: {otp}")
         return jsonify(response_data), 200
         
     except Exception as e:
