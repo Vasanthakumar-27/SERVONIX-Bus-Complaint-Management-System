@@ -3839,6 +3839,7 @@
         
         // Helper function to get API base URL
         function getAPIBase() {
+            if (window.API_BASE) return window.API_BASE;
             if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
                 return 'http://127.0.0.1:5000';
             } else {
