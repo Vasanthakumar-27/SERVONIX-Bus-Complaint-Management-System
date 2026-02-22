@@ -247,6 +247,17 @@ def init_db():
       FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
     )
     ''')
+    # Migrations: add missing columns to existing admin_assignments tables
+    for _col_sql in [
+        'ALTER TABLE admin_assignments ADD COLUMN district_id INTEGER DEFAULT NULL',
+        'ALTER TABLE admin_assignments ADD COLUMN bus_id INTEGER DEFAULT NULL',
+        'ALTER TABLE admin_assignments ADD COLUMN priority INTEGER DEFAULT 1',
+        'ALTER TABLE admin_assignments ADD COLUMN assigned_by INTEGER DEFAULT NULL',
+    ]:
+        try:
+            cursor.execute(_col_sql)
+        except Exception:
+            pass  # Column already exists
     
     # ============================================
     # District/Route/Bus Management Tables

@@ -212,7 +212,7 @@ def create_admin():
 
     except Exception as e:
         logger.error(f"Error creating admin: {e}")
-        return jsonify({'error': 'Failed to create admin'}), 500
+        return jsonify({'error': 'Failed to create admin', 'detail': str(e)}), 500
 
 
 @head_bp.route('/admins/<int:admin_id>/toggle', methods=['PUT'])
