@@ -120,8 +120,6 @@ def create_app():
     from .routes.dashboard import dashboard_bp
     from .routes.admin_head_messaging import admin_head_bp
     from .routes.messages import messages_bp
-    from .routes.debug import debug_bp
-    
     app.register_blueprint(auth_bp)
     app.register_blueprint(complaints_bp)
     app.register_blueprint(admin_bp)
@@ -135,7 +133,9 @@ def create_app():
     app.register_blueprint(messages_bp)
     # Register debug blueprint (protected via DEBUG_API_KEY header)
     try:
+        from .routes.debug import debug_bp
         app.register_blueprint(debug_bp)
+        logger.info('Debug blueprint registered at /debug')
     except Exception:
         logger.exception('Failed to register debug blueprint')
     

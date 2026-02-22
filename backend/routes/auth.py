@@ -43,6 +43,37 @@ def is_valid_email(email):
     return bool(EMAIL_REGEX.match(email))
 
 
+@auth_bp.route('/email-status', methods=['GET'])
+def email_status():
+    """
+    Public diagnostic endpoint — shows email config mode (no passwords).
+    Visit: /api/email-status
+    """
+    svc = _get_email_service()
+    return jsonify(svc.get_status())
+
+
+@auth_bp.route('/email-test', methods=['POST'])
+def email_test():
+    """
+    Test email connectivity.
+    POST body (optional): {"to": "recipient@example.com"}
+    """
+    svc = _get_email_service()
+    ok, msg = svc.test_smtp_connection()
+    result = {'connection_ok': ok, 'connection_message': msg, 'config': svc.get_status()}
+    to_email = (request.get_json() or {}).get('to', '').strip()
+    if to_email and ok:
+        sent = svc._send_email(
+            to_email,
+            '🔧 SERVONIX Email Test',
+            '<h2>Email test</h2><p>If you see this, SMTP is working correctly.</p>'
+        )
+        result['test_email_sent'] = sent
+        result['test_email_to'] = to_email
+    return jsonify(result), (200 if ok else 500)
+
+
 def generate_secure_otp():
     """Generate a cryptographically secure 6-digit OTP"""
     return ''.join([str(secrets.randbelow(10)) for _ in range(OTP_LENGTH)])
