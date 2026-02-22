@@ -4063,7 +4063,7 @@
                 console.log('[Media] Loading file:', fileName, 'type:', type);
                 
                 // Try fetching with full API_BASE URL
-                let response = await fetch(`${apiBase}/api/media/${fileName}`);
+                let response = await fetch(`${apiBase}/api/uploads/${fileName}`);
                 console.log('[Media] Response status:', response.status);
                 
                 if (response.ok) {

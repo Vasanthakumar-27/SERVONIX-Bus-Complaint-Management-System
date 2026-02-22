@@ -812,3 +812,33 @@ def change_password():
     except Exception as e:
         logger.error(f"Error in change_password: {str(e)}")
         return jsonify({'error': 'Failed to change password'}), 500
+
+
+@auth_bp.route('/users/head', methods=['GET'])
+def get_head_user():
+    """Return the head admin's basic info for use as a message recipient.
+    Accessible to authenticated admin/head users.
+    """
+    user = require_user_auth()
+    if not user or user.get('role') not in ('admin', 'head'):
+        return jsonify({'error': 'Authentication required'}), 401
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT id, name, email FROM users WHERE role = ? AND is_active = 1 LIMIT 1',
+            ('head',)
+        )
+        head = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not head:
+            return jsonify({'error': 'No active head user found'}), 404
+
+        return jsonify({'user': dict(head)})
+
+    except Exception as e:
+        logger.error(f'Error fetching head user: {e}')
+        return jsonify({'error': 'Failed to fetch head user'}), 500

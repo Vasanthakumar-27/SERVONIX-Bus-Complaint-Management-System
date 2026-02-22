@@ -4039,7 +4039,7 @@ function quickReply(complaintId) {
 async function sendQuickReplyMessage(complaintId, message) {
     console.log('[REPLY] sendQuickReplyMessage:', complaintId);
     try {
-        const response = await fetch(`${getAPIBase()}/api/complaints/${complaintId}/reply`, {
+        const response = await fetch(`${getAPIBase()}/api/complaints/${complaintId}/messages`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,

@@ -1296,8 +1296,8 @@ async function fetchProtectedFile(filename) {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('Not authenticated');
 
-    // Fetch media file from /api/media/ endpoint on backend (port 5000)
-    const res = await fetch(`${API_BASE}/api/media/${encodeURIComponent(filename)}`, {
+    // Fetch media file from /api/uploads/ endpoint on backend
+    const res = await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(filename)}`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`
