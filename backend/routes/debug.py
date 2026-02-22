@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import smtplib
 from flask import Blueprint, current_app, jsonify, request
 from ..database.connection import DB_PATH, get_db
 
@@ -49,3 +50,48 @@ def status():
         info['email_log_error'] = str(e)
 
     return jsonify(info)
+
+
+@debug_bp.route('/email-status', methods=['GET'])
+def email_status():
+    """Show current email configuration (no passwords)."""
+    if not _check_key():
+        return jsonify({'error': 'missing or invalid debug key'}), 403
+    from ..services.email_service import EmailService
+    svc = EmailService()
+    return jsonify(svc.get_status())
+
+
+@debug_bp.route('/email-test', methods=['POST'])
+def email_test():
+    """
+    Test SMTP/Resend connectivity and optionally send a test OTP email.
+    Body (JSON, optional): { "to": "recipient@example.com" }
+    If "to" not given, only tests the connection without sending.
+    """
+    if not _check_key():
+        return jsonify({'error': 'missing or invalid debug key'}), 403
+
+    from ..services.email_service import EmailService
+    svc = EmailService()
+
+    # Connection test
+    ok, msg = svc.test_smtp_connection()
+    result = {
+        'connection_ok': ok,
+        'connection_message': msg,
+        'config': svc.get_status(),
+    }
+
+    # Optional: send a real test email
+    to_email = (request.get_json() or {}).get('to', '').strip()
+    if to_email and ok:
+        sent = svc._send_email(
+            to_email,
+            '🔧 SERVONIX Email Test',
+            '<h2>Email delivery test</h2><p>If you see this, SMTP is working correctly.</p>'
+        )
+        result['test_email_sent'] = sent
+        result['test_email_to'] = to_email
+
+    return jsonify(result), 200 if ok else 500

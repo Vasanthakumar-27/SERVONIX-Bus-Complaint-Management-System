@@ -24,15 +24,16 @@ OTP_RATE_LIMIT_MAX = 3  # Max 3 OTP requests
 OTP_RATE_LIMIT_WINDOW = 10  # Per 10 minutes
 OTP_LENGTH = 6
 
-# Dev mode - shows OTP in response for testing (set to False in production)
-DEV_MODE = os.environ.get('FLASK_ENV', 'development') == 'development'
 
-# If no real email service is configured (no Resend key, no SMTP password),
-# return dev_otp so users can still register/reset passwords without email.
-# NOTE: DEV_MODE is intentionally excluded — on Render FLASK_ENV is not set,
-# so DEV_MODE would always be True and OTPs would be exposed even when email works.
-_EMAIL_CONFIGURED = bool(os.environ.get('RESEND_API_KEY', '')) or bool(os.environ.get('EMAIL_PASSWORD', ''))
-SHOW_DEV_OTP = not _EMAIL_CONFIGURED  # Only expose OTP when email is NOT configured
+def _is_email_configured():
+    """Re-read env vars at request time — avoids stale import-time constants."""
+    return bool(os.environ.get('RESEND_API_KEY', '')) or bool(os.environ.get('EMAIL_PASSWORD', ''))
+
+
+def _get_email_service():
+    """Return a fresh EmailService instance so it always uses current env vars."""
+    from ..services.email_service import EmailService
+    return EmailService()
 
 # Email validation regex
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
@@ -216,9 +217,9 @@ def register_request():
         # Send OTP via email — strategy depends on configured email service:
         # • Resend HTTPS API (fast): send synchronously so failures are detected
         # • Dev mode (no credentials): sync log-only, OTP always returned in response
-        # • SMTP (slow): send async to avoid Render request-timeout
-        from ..services.email_service import email_service
-        include_otp_in_response = SHOW_DEV_OTP
+        # • SMTP (slow): send synchronously so failures are caught
+        email_service = _get_email_service()
+        include_otp_in_response = not _is_email_configured()
         email_send_failed = False
         if email_service.resend_api_key:
             _ok = email_service.send_registration_otp_email(email, otp, name)
@@ -230,13 +231,7 @@ def register_request():
                 logger.info(f"[Resend] Registration OTP sent to {email}")
         elif email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, name)  # logs to console/file
-        else:
-            # SMTP — send synchronously so failures are caught immediately
-            _ok = email_service.send_registration_otp_email(email, otp, name)
-            if not _ok:
-                include_otp_in_response = True
-                email_send_failed = True
-                logger.warning(f"[SMTP] Registration OTP email failed for {email} — returning OTP in response")
+            include_otp_in_response = True
             else:
                 logger.info(f"[SMTP] Registration OTP sent to {email}")
 
@@ -413,8 +408,8 @@ def register_resend():
         conn.close()
         
         # Send OTP via email — same strategy as register_request
-        from ..services.email_service import email_service
-        include_otp_in_response = SHOW_DEV_OTP
+        email_service = _get_email_service()
+        include_otp_in_response = not _is_email_configured()
         email_send_failed = False
         if email_service.resend_api_key:
             _ok = email_service.send_registration_otp_email(email, otp, pending['name'])
@@ -424,11 +419,7 @@ def register_resend():
                 logger.warning(f"[Resend] Resend registration OTP failed for {email} — returning OTP in response")
         elif email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, pending['name'])
-        else:
-            # SMTP — send synchronously so failures are caught immediately
-            _ok = email_service.send_registration_otp_email(email, otp, pending['name'])
-            if not _ok:
-                include_otp_in_response = True
+            include_otp_in_response = True
                 email_send_failed = True
                 logger.warning(f"[SMTP] Resend registration OTP failed for {email} — returning OTP in response")
             else:
@@ -616,8 +607,8 @@ def request_otp():
         conn.close()
         
         # Send OTP via email — same strategy as register_request
-        from ..services.email_service import email_service
-        include_otp_in_response = SHOW_DEV_OTP
+        email_service = _get_email_service()
+        include_otp_in_response = not _is_email_configured()
         email_send_failed = False
         if email_service.resend_api_key:
             _ok = email_service.send_otp_email(email, otp, user['name'])
@@ -629,6 +620,7 @@ def request_otp():
                 logger.info(f"[Resend] Password reset OTP sent to {email} from IP {client_ip}")
         elif email_service.development_mode:
             email_service.send_otp_email(email, otp, user['name'])
+            include_otp_in_response = True
         else:
             # SMTP — send synchronously so failures are caught immediately
             _ok = email_service.send_otp_email(email, otp, user['name'])

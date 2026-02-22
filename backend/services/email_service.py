@@ -49,6 +49,16 @@ class EmailService:
         if _requests is None:
             logger.error("requests library not installed - cannot use Resend API")
             return False
+        # Resend sandbox (onboarding@resend.dev) can ONLY deliver to the Resend
+        # account owner's verified address — treat any other recipient as a failure
+        # so the frontend falls back to the inline OTP banner.
+        if 'onboarding@resend.dev' in self.resend_from:
+            logger.warning(
+                f"[Resend] Sandbox sender detected (onboarding@resend.dev). "
+                f"Emails are only delivered to the Resend account owner, NOT to {to_email}. "
+                f"Set RESEND_FROM to a verified domain address to send to real users."
+            )
+            return False
         try:
             payload = {
                 "from": self.resend_from,
@@ -143,6 +153,71 @@ class EmailService:
             logger.error(f"Error sending email to {to_email}: {str(e)}")
             return False
     
+    def get_status(self):
+        """Return a safe dict describing the current email configuration (no passwords)."""
+        if self.resend_api_key:
+            sandbox = 'onboarding@resend.dev' in self.resend_from
+            return {
+                'mode': 'resend',
+                'from': self.resend_from,
+                'sandbox': sandbox,
+                'warning': (
+                    'Resend sandbox sender — emails only go to the Resend account owner. '
+                    'Set RESEND_FROM to a verified domain address.'
+                ) if sandbox else None,
+            }
+        if self.development_mode:
+            return {'mode': 'development', 'note': 'No email credentials configured — OTP is logged only'}
+        return {
+            'mode': 'smtp',
+            'server': self.smtp_server,
+            'port': self.smtp_port,
+            'sender': self.sender_email,
+            'timeout': self.smtp_timeout,
+        }
+
+    def test_smtp_connection(self):
+        """
+        Test SMTP connectivity without sending an email.
+        Returns (success: bool, message: str).
+        """
+        if self.resend_api_key:
+            sandbox = 'onboarding@resend.dev' in self.resend_from
+            if sandbox:
+                return False, 'Resend sandbox — only delivers to account owner. Set RESEND_FROM to a verified domain.'
+            # Test Resend API key validity with a dry-run request
+            if _requests is None:
+                return False, 'requests library not installed'
+            try:
+                resp = _requests.get(
+                    'https://api.resend.com/domains',
+                    headers={'Authorization': f'Bearer {self.resend_api_key}'},
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    return True, f'Resend API key valid. Domains: {[d.get("name") for d in resp.json().get("data", [])]}'
+                return False, f'Resend API returned {resp.status_code}: {resp.text[:200]}'
+            except Exception as e:
+                return False, f'Resend API error: {e}'
+        if self.development_mode:
+            return False, 'Development mode — no credentials configured'
+        # SMTP connection test
+        try:
+            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=self.smtp_timeout) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(self.sender_email, self.sender_password)
+            return True, f'SMTP login to {self.smtp_server}:{self.smtp_port} as {self.sender_email} succeeded'
+        except smtplib.SMTPAuthenticationError as e:
+            return False, f'SMTP authentication failed — check EMAIL_SENDER and EMAIL_PASSWORD: {e}'
+        except smtplib.SMTPConnectError as e:
+            return False, f'Cannot connect to {self.smtp_server}:{self.smtp_port} — port may be blocked on this host: {e}'
+        except Exception as e:
+            return False, f'SMTP error: {e}'
+
+    # ------------------------------------------------------------------ #
+
     def send_otp_email(self, email, otp, user_name):
         """Send OTP for password reset - SECURE VERSION"""
         subject = '🔐 Password Reset OTP - SERVONIX'
