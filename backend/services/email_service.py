@@ -12,7 +12,9 @@ try:
 except ImportError:
     _requests = None
 
-load_dotenv()
+# Load .env explicitly from backend/ so this works regardless of CWD
+_backend_dir = os.path.dirname(os.path.dirname(__file__))
+load_dotenv(os.path.join(_backend_dir, '.env'))
 logger = logging.getLogger(__name__)
 
 
@@ -24,6 +26,9 @@ class EmailService:
         self.sender_password = os.environ.get('EMAIL_PASSWORD', '')
         self.smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
         self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        self.smtp_timeout = int(os.environ.get('SMTP_TIMEOUT', '20'))
+        # Optional display name shown in inbox (e.g. "SERVONIX Support")
+        self.from_name = os.environ.get('EMAIL_FROM_NAME', 'SERVONIX')
         # Resend HTTPS API key (preferred on Render — bypasses blocked SMTP ports)
         self.resend_api_key = os.environ.get('RESEND_API_KEY', '')
         # From address for Resend: override via RESEND_FROM env var.
@@ -35,7 +40,7 @@ class EmailService:
         if self.resend_api_key:
             logger.info("Email service using Resend HTTPS API")
         elif self.sender_password:
-            logger.info("Email service using SMTP")
+            logger.info(f"Email service using SMTP ({self.smtp_server}:{self.smtp_port}) as {self.sender_email}")
         else:
             logger.warning("Email service running in DEVELOPMENT MODE - emails will be logged to console and to file")
     
@@ -75,7 +80,7 @@ class EmailService:
         try:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = f"SERVONIX <{self.sender_email}>"
+            msg['From'] = f"{self.from_name} <{self.sender_email}>"
             msg['To'] = to_email
             msg.attach(MIMEText(html_body, 'html'))
 
@@ -110,8 +115,10 @@ class EmailService:
                 last_err = None
                 # --- Attempt 1: STARTTLS on configured port (default 587) ---
                 try:
-                    with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=8) as server:
+                    with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=self.smtp_timeout) as server:
+                        server.ehlo()
                         server.starttls()
+                        server.ehlo()
                         server.login(self.sender_email, self.sender_password)
                         server.send_message(msg)
                     sent = True
@@ -121,7 +128,7 @@ class EmailService:
                 # --- Attempt 2: SMTP_SSL on port 465 ---
                 if not sent:
                     try:
-                        with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=8) as server:
+                        with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=self.smtp_timeout) as server:
                             server.login(self.sender_email, self.sender_password)
                             server.send_message(msg)
                         sent = True

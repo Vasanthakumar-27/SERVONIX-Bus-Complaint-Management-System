@@ -7,6 +7,11 @@ from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
 from flask_talisman import Talisman
 from flask_socketio import SocketIO
+from dotenv import load_dotenv
+
+# Load .env from backend/ directory BEFORE any other imports that read env vars
+_backend_dir = os.path.dirname(__file__)
+load_dotenv(os.path.join(_backend_dir, '.env'))
 
 from .config import config
 from .database.connection import init_db

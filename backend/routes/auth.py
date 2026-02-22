@@ -5,7 +5,6 @@ import secrets
 import hashlib
 import hmac
 import os
-import threading
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
@@ -232,12 +231,14 @@ def register_request():
         elif email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, name)  # logs to console/file
         else:
-            threading.Thread(
-                target=email_service.send_registration_otp_email,
-                args=(email, otp, name),
-                daemon=True
-            ).start()
-            logger.info(f"[SMTP] Registration OTP email dispatched (async) to {email}")
+            # SMTP — send synchronously so failures are caught immediately
+            _ok = email_service.send_registration_otp_email(email, otp, name)
+            if not _ok:
+                include_otp_in_response = True
+                email_send_failed = True
+                logger.warning(f"[SMTP] Registration OTP email failed for {email} — returning OTP in response")
+            else:
+                logger.info(f"[SMTP] Registration OTP sent to {email}")
 
         response_data = {
             'message': 'Verification code sent to your email',
@@ -424,11 +425,14 @@ def register_resend():
         elif email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, pending['name'])
         else:
-            threading.Thread(
-                target=email_service.send_registration_otp_email,
-                args=(email, otp, pending['name']),
-                daemon=True
-            ).start()
+            # SMTP — send synchronously so failures are caught immediately
+            _ok = email_service.send_registration_otp_email(email, otp, pending['name'])
+            if not _ok:
+                include_otp_in_response = True
+                email_send_failed = True
+                logger.warning(f"[SMTP] Resend registration OTP failed for {email} — returning OTP in response")
+            else:
+                logger.info(f"[SMTP] Resend registration OTP sent to {email}")
 
         response_data = {
             'message': 'New verification code sent',
@@ -626,12 +630,14 @@ def request_otp():
         elif email_service.development_mode:
             email_service.send_otp_email(email, otp, user['name'])
         else:
-            threading.Thread(
-                target=email_service.send_otp_email,
-                args=(email, otp, user['name']),
-                daemon=True
-            ).start()
-            logger.info(f"[SMTP] Password reset OTP email dispatched (async) to {email} from IP {client_ip}")
+            # SMTP — send synchronously so failures are caught immediately
+            _ok = email_service.send_otp_email(email, otp, user['name'])
+            if not _ok:
+                include_otp_in_response = True
+                email_send_failed = True
+                logger.warning(f"[SMTP] Password reset OTP failed for {email} — returning OTP in response")
+            else:
+                logger.info(f"[SMTP] Password reset OTP sent to {email} from IP {client_ip}")
 
         response_data = {
             'message': 'OTP sent successfully to your email',
