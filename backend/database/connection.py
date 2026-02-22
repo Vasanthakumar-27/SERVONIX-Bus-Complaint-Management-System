@@ -218,6 +218,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS admin_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       admin_id INTEGER NOT NULL,
+      admin_name TEXT DEFAULT NULL,
       action TEXT NOT NULL,
       details TEXT DEFAULT NULL,
       ip_address TEXT DEFAULT NULL,
@@ -225,6 +226,11 @@ def init_db():
       FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
     )
     ''')
+    # Migration: add admin_name column to existing admin_logs tables that lack it
+    try:
+        cursor.execute('ALTER TABLE admin_logs ADD COLUMN admin_name TEXT DEFAULT NULL')
+    except Exception:
+        pass  # Column already exists
     
     # Create admin_assignments table for assigning routes to admins
     cursor.execute('''

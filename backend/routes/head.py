@@ -177,8 +177,8 @@ def create_admin():
         admin_id = cursor.lastrowid
 
         # ===== STRICT ROUTE ASSIGNMENTS =====
-        # Insert each route assignment with priority (use string values: 'high', 'medium', 'low')
-        priority_levels = ['high', 'medium', 'low']
+        # Insert each route assignment with priority (integers: 3=high, 2=medium, 1=low)
+        priority_levels = [3, 2, 1]
         for i, route_id in enumerate(route_ids):
             # Get district_id for this route
             cursor.execute("SELECT district_id FROM routes WHERE id = ?", (route_id,))
@@ -581,8 +581,8 @@ def delete_head_complaint(complaint_id):
 
         # Log the deletion action
         cursor.execute("""
-            INSERT INTO admin_logs (admin_id, admin_name, action, details, timestamp)
-            VALUES (?, ?, ?, ?, datetime('now'))
+            INSERT INTO admin_logs (admin_id, admin_name, action, details)
+            VALUES (?, ?, ?, ?)
         """, (
             head['id'],
             head['name'],
