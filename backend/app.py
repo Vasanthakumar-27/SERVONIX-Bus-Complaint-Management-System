@@ -134,47 +134,35 @@ def create_app():
     except Exception:
         logger.exception('Failed to register debug blueprint')
     
-    # Frontend routes
+    # Root and frontend routes — redirect browser visitors to the GitHub Pages frontend.
+    # This backend is an API server; the UI is served from GitHub Pages.
+    FRONTEND_HOME = os.environ.get(
+        'FRONTEND_URL',
+        'https://vasanthakumar-27.github.io/SERVONIX-Bus-Complaint-Management-System/'
+    )
+
     @app.route('/')
     def index():
-        """Serve splash page as index"""
-        return send_from_directory(os.path.join(app.static_folder, 'html'), 'splash.html')
-    
+        """Redirect root to GitHub Pages frontend"""
+        from flask import redirect
+        return redirect(FRONTEND_HOME, code=302)
+
     @app.route('/splash')
     @app.route('/splash.html')
-    def splash():
-        """Serve splash page"""
-        return send_from_directory(os.path.join(app.static_folder, 'html'), 'splash.html')
-    
     @app.route('/login')
     @app.route('/login.html')
-    def login():
-        """Serve login page"""
-        return send_from_directory(os.path.join(app.static_folder, 'html'), 'login.html')
-    
     @app.route('/register')
     @app.route('/register.html')
-    def register():
-        """Serve register page"""
-        return send_from_directory(os.path.join(app.static_folder, 'html'), 'register.html')
-    
     @app.route('/admin_dashboard')
     @app.route('/admin_dashboard.html')
-    def admin_dashboard():
-        """Serve admin dashboard"""
-        return send_from_directory(os.path.join(app.static_folder, 'html'), 'admin_dashboard.html')
-    
     @app.route('/head_dashboard')
     @app.route('/head_dashboard.html')
-    def head_dashboard():
-        """Serve head dashboard"""
-        return send_from_directory(os.path.join(app.static_folder, 'html'), 'head_dashboard.html')
-    
     @app.route('/user_dashboard')
     @app.route('/user_dashboard.html')
-    def user_dashboard():
-        """Serve user dashboard"""
-        return send_from_directory(os.path.join(app.static_folder, 'html'), 'user_dashboard.html')
+    def redirect_to_frontend():
+        """Redirect all page routes to GitHub Pages frontend"""
+        from flask import redirect
+        return redirect(FRONTEND_HOME, code=302)
     
     # Serve other static resources
     @app.route('/frontend/<path:filename>')
