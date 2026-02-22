@@ -4242,7 +4242,6 @@ async function deleteMessage(messageId) {
                 
                 if (response.ok) {
                     showToast('Message deleted', 'success');
-                    loadMessages();
                 } else {
                     throw new Error('Delete failed');
                 }
@@ -4689,7 +4688,8 @@ async function openAssignComplaintModal(complaintId, currentAdminName, currentAd
             throw new Error('Failed to fetch admins');
         }
 
-        const admins = await response.json();
+        const adminsData = await response.json();
+        const admins = Array.isArray(adminsData) ? adminsData : (adminsData.admins || []);
         
         // Create modal
         const overlay = document.createElement('div');
