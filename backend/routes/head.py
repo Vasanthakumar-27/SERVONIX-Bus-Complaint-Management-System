@@ -1245,7 +1245,7 @@ def get_user_logs():
 
 @head_bp.route('/admin/<int:admin_id>/details', methods=['GET'])
 def get_admin_details_for_head(admin_id):
-    """Get details of a specific admin (used by head dashboard messaging modal)"""
+    """Get details of a specific admin with districts and routes"""
     head = require_head_auth()
     if not head:
         return jsonify({'error': 'head auth required'}), 401
@@ -1258,11 +1258,39 @@ def get_admin_details_for_head(admin_id):
             WHERE id = ? AND role = 'admin'
         ''', (admin_id,))
         row = cursor.fetchone()
+        if not row:
+            cursor.close()
+            conn.close()
+            return jsonify({'error': 'Admin not found'}), 404
+        admin = dict(row)
+        # Get district assignments
+        cursor.execute('''
+            SELECT ada.district_id, d.name as district_name
+            FROM admin_district_assignments ada
+            JOIN districts d ON d.id = ada.district_id
+            WHERE ada.admin_id = ?
+        ''', (admin_id,))
+        districts = [dict(r) for r in cursor.fetchall()]
+        # Get all assigned routes
+        cursor.execute('''
+            SELECT r.route_number
+            FROM admin_assignments aa
+            JOIN routes r ON r.id = aa.route_id
+            WHERE aa.admin_id = ? AND aa.route_id IS NOT NULL
+        ''', (admin_id,))
+        all_routes = [r['route_number'] for r in cursor.fetchall()]
         cursor.close()
         conn.close()
-        if not row:
-            return jsonify({'error': 'Admin not found'}), 404
-        return jsonify({'admin': dict(row)}), 200
+        return jsonify({
+            'id': admin['id'],
+            'name': admin['name'],
+            'email': admin['email'],
+            'phone': admin.get('phone', ''),
+            'is_active': admin['is_active'],
+            'created_at': admin['created_at'],
+            'districts': districts,
+            'all_routes': all_routes,
+        }), 200
     except Exception as e:
         logger.error(f"Error fetching admin details {admin_id}: {e}")
         return jsonify({'error': str(e)}), 500

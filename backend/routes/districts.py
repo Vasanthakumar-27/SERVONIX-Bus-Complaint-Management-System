@@ -1,4 +1,4 @@
-"""District, Route, and Bus management routes - HEAD only operations"""
+﻿"""District, Route, and Bus management routes - HEAD only operations"""
 from flask import Blueprint, request, jsonify
 import logging
 from datetime import datetime
@@ -126,8 +126,8 @@ def get_district(district_id):
         
         # Get routes in this district
         cursor.execute("""
-            SELECT id, code, name, start_point, end_point, is_active
-            FROM routes WHERE district_id = ? ORDER BY code
+            SELECT id, route_number, name, start_point, end_point, is_active
+            FROM routes WHERE district_id = ? ORDER BY route_number
         """, (district_id,))
         district_data['routes'] = [dict(row) for row in cursor.fetchall()]
         
@@ -270,7 +270,7 @@ def list_routes():
         if not include_inactive:
             query += " AND r.is_active = 1"
         
-        query += " ORDER BY r.code"
+        query += " ORDER BY r.route_number"
         
         cursor.execute(query, params)
         routes = [dict(row) for row in cursor.fetchall()]
@@ -306,12 +306,12 @@ def create_route():
         # Check for duplicate route code or name in the same district
         if data.get('district_id'):
             cursor.execute(
-                "SELECT id, name, code FROM routes WHERE (code = ? OR name = ?) AND district_id = ?", 
+                "SELECT id, name, route_number FROM routes WHERE (route_number = ? OR name = ?) AND district_id = ?", 
                 (route_code, data['name'], data['district_id'])
             )
         else:
             cursor.execute(
-                "SELECT id, name, code FROM routes WHERE code = ? OR name = ?", 
+                "SELECT id, name, route_number FROM routes WHERE route_number = ? OR name = ?", 
                 (route_code, data['name'])
             )
         
@@ -320,15 +320,15 @@ def create_route():
             cursor.close()
             conn.close()
             existing_data = dict(existing)
-            if existing_data['code'] == route_code and existing_data['name'] == data['name']:
+            if existing_data['route_number'] == route_code and existing_data['name'] == data['name']:
                 return jsonify({'error': f'Route "{data["name"]}" already exists in this district'}), 409
-            elif existing_data['code'] == route_code:
+            elif existing_data['route_number'] == route_code:
                 return jsonify({'error': f'Route code "{route_code}" already exists. Please try again.'}), 409
             else:
                 return jsonify({'error': f'Route "{data["name"]}" already exists in this district'}), 409
         
         cursor.execute("""
-            INSERT INTO routes (code, name, district_id, start_point, end_point, 
+            INSERT INTO routes (route_number, name, district_id, start_point, end_point, 
                                description, is_active, created_by, created_at)
             VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
         """, (route_code, data['name'], data.get('district_id'),
@@ -418,7 +418,9 @@ def update_route(route_id):
             # Accept route_number as alias for code
             value = data.get(field) or (data.get('route_number') if field == 'code' else None)
             if value is not None:
-                updates.append(f'{field} = ?')
+                # Map 'code' field to actual column name 'route_number'
+                col = 'route_number' if field == 'code' else field
+                updates.append(f'{col} = ?')
                 params.append(value)
         
         if 'is_active' in data:
@@ -494,7 +496,7 @@ def list_buses():
         cursor = conn.cursor()
         
         query = """
-            SELECT b.*, r.code as route_code, r.name as route_name, d.name as district_name
+            SELECT b.*, r.route_number as route_code, r.name as route_name, d.name as district_name
             FROM buses b
             LEFT JOIN routes r ON b.route_id = r.id
             LEFT JOIN districts d ON r.district_id = d.id
@@ -676,7 +678,7 @@ def get_my_assignments():
         
         # Also get route assignments if any
         cursor.execute("""
-            SELECT aa.*, r.name as route_name, r.code as route_code,
+            SELECT aa.*, r.name as route_name, r.route_number as route_code,
                    d.name as district_name
             FROM admin_assignments aa
             LEFT JOIN routes r ON aa.route_id = r.id
@@ -870,12 +872,12 @@ def lookup_routes():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT code, name FROM routes 
-            WHERE is_active = 1 AND (code LIKE ? OR name LIKE ?)
-            ORDER BY code LIMIT 20
+            SELECT route_number, name FROM routes 
+            WHERE is_active = 1 AND (route_number LIKE ? OR name LIKE ?)
+            ORDER BY route_number LIMIT 20
         """, (f'%{q}%', f'%{q}%'))
         
-        routes = [{'value': row['code'], 'label': f"{row['code']} - {row['name']}"} 
+        routes = [{'value': row['route_number'], 'label': f"{row['route_number']} - {row['name']}"} 
                   for row in cursor.fetchall()]
         
         cursor.close()
@@ -899,7 +901,7 @@ def lookup_buses():
         cursor = conn.cursor()
         
         query = """
-            SELECT b.bus_number, b.bus_type, r.code as route_code
+            SELECT b.bus_number, b.bus_type, r.route_number as route_code
             FROM buses b
             LEFT JOIN routes r ON b.route_id = r.id
             WHERE b.is_active = 1 AND b.bus_number LIKE ?
@@ -907,7 +909,7 @@ def lookup_buses():
         params = [f'%{q}%']
         
         if route_code:
-            query += " AND r.code = ?"
+            query += " AND r.route_number = ?"
             params.append(route_code)
         
         query += " ORDER BY b.bus_number LIMIT 20"
@@ -927,3 +929,4 @@ def lookup_buses():
     except Exception as e:
         logger.error(f"Error in bus lookup: {e}")
         return jsonify({'buses': []})
+

@@ -388,6 +388,24 @@ def init_db():
     cursor.execute('''
     CREATE INDEX IF NOT EXISTS idx_email_otp ON password_otps (email, otp)
     ''')
+
+    # Create user_notifications table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'info',
+      message TEXT NOT NULL,
+      related_id INTEGER DEFAULT NULL,
+      is_read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+    ''')
+
+    cursor.execute('''
+    CREATE INDEX IF NOT EXISTS idx_user_notif_user_id ON user_notifications (user_id, is_read)
+    ''')
     
     # Create index for admin_logs table
     cursor.execute('''

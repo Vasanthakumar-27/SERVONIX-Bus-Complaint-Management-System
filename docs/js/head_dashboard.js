@@ -3565,10 +3565,20 @@ function displayUserInfoModal(user, complaints) {
     
     overlay.appendChild(modalCard);
     document.body.appendChild(overlay);
-}
 
-// View complaint from user modal - keeps user modal open, shows on top
-async function viewComplaintFromUserOverlay(complaintId) {
+    // Wire up close buttons (created via innerHTML, need explicit listeners)
+    modalCard.querySelectorAll('.close-user-modal-btn').forEach(btn => {
+        btn.addEventListener('click', () => overlay.remove());
+    });
+    // Wire up delete user button
+    const deleteUserBtn = modalCard.querySelector('.delete-user-btn');
+    if (deleteUserBtn) {
+        deleteUserBtn.addEventListener('click', () => {
+            const userId = parseInt(deleteUserBtn.getAttribute('data-user-id'));
+            if (userId) deleteUser(userId);
+        });
+    }
+}
     console.log('[VIEW] viewComplaintFromUserOverlay:', complaintId);
     
     try {
