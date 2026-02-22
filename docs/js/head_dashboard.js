@@ -825,9 +825,25 @@ async function deleteSelectedRoutes() {
 }
 
 // Handle Create Admin Form Submission
+// Guard against double/triple submit
+let _createAdminSubmitting = false;
+
 async function handleCreateAdmin(e) {
   e.preventDefault();
-  
+
+  if (_createAdminSubmitting) {
+    console.warn('[Create Admin] Already submitting, ignoring duplicate request');
+    return;
+  }
+
+  // Disable submit button immediately to prevent rapid re-clicks
+  const submitBtn = e.target?.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+  }
+  _createAdminSubmitting = true;
+
   const name = document.getElementById('adminName').value.trim();
   const email = document.getElementById('adminEmail').value.trim();
   const phone = document.getElementById('adminPhone')?.value.trim() || '';
@@ -842,14 +858,24 @@ async function handleCreateAdmin(e) {
   const routesSelect = document.getElementById('adminRoutes');
   const selectedRouteIds = Array.from(routesSelect?.selectedOptions || []).map(opt => parseInt(opt.value)).filter(id => !isNaN(id));
   
+  const _restoreSubmitBtn = () => {
+    _createAdminSubmitting = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-plus"></i> Create Admin';
+    }
+  };
+
   if (!name || !email || !password || !districtId || selectedRouteIds.length === 0) {
     showToast('Please fill all required fields and select at least one route', 'warning');
+    _restoreSubmitBtn();
     return;
   }
   
   const token = localStorage.getItem('token');
   if (!token) {
     showToast('Authentication required', 'error');
+    _restoreSubmitBtn();
     return;
   }
   
@@ -897,6 +923,8 @@ async function handleCreateAdmin(e) {
   } catch (error) {
     console.error('[Create Admin] Error:', error);
     showToast('Network error: ' + error.message, 'error');
+  } finally {
+    _restoreSubmitBtn();
   }
 }
 
