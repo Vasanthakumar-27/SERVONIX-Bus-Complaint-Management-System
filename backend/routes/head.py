@@ -93,7 +93,7 @@ def get_admin_assignments(admin_id):
         cursor.execute("""
             SELECT aa.id, aa.admin_id, aa.district_id, aa.route_id, aa.priority,
                    d.name as district_name, d.code as district_code,
-                   r.code as route_code, r.name as route_name
+                   r.route_number as route_code, r.name as route_name
             FROM admin_assignments aa
             LEFT JOIN districts d ON aa.district_id = d.id
             LEFT JOIN routes r ON aa.route_id = r.id

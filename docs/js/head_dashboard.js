@@ -6390,3 +6390,22 @@ window.toggleComplaintDropdown = toggleComplaintDropdown;
 window.selectComplaint = selectComplaint;
 window.unselectComplaint = unselectComplaint;
 window.refreshAllData = refreshAllData;
+
+// Close the static #confirmModal overlay
+function closeConfirmModal() {
+    const modal = document.getElementById('confirmModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+window.closeConfirmModal = closeConfirmModal;
+
+// Hide admin assignment notification banner
+function hideAdminAssignmentBanner() {
+    const banner = document.getElementById('adminAssignmentBanner');
+    if (banner) {
+        banner.style.display = 'none';
+    }
+}
+window.hideAdminAssignmentBanner = hideAdminAssignmentBanner;

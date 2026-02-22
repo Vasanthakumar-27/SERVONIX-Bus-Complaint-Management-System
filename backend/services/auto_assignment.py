@@ -51,7 +51,7 @@ class AutoAssignmentService:
             # If no route but bus provided, try to get route from bus
             if not complaint_route and bus_number:
                 cursor.execute("""
-                    SELECT r.name as route_name, r.code as route_code
+                    SELECT r.name as route_name, r.route_number as route_code
                     FROM buses b
                     JOIN routes r ON b.route_id = r.id
                     WHERE b.bus_number = ? AND b.is_active = 1 AND r.is_active = 1
@@ -69,11 +69,11 @@ class AutoAssignmentService:
             # Find admin(s) whose assigned routes match the complaint route
             # Uses route.name or route.code for matching
             cursor.execute("""
-                SELECT aa.admin_id, aa.priority, u.name as admin_name, r.name as route_name, r.code as route_code, r.district_id
+                SELECT aa.admin_id, aa.priority, u.name as admin_name, r.name as route_name, r.route_number as route_code, r.district_id
                 FROM admin_assignments aa
                 JOIN routes r ON aa.route_id = r.id
                 JOIN users u ON aa.admin_id = u.id
-                WHERE (r.name = ? OR r.code = ?)
+                WHERE (r.name = ? OR r.route_number = ?)
                   AND u.is_active = 1 
                   AND u.role = 'admin'
                   AND r.is_active = 1
@@ -136,12 +136,12 @@ class AutoAssignmentService:
                 FROM admin_assignments aa
                 JOIN routes r ON aa.route_id = r.id
                 JOIN users u ON aa.admin_id = u.id
-                WHERE (r.name = ? OR r.code = ? OR r.route_number = ?)
+                WHERE (r.name = ? OR r.route_number = ?)
                   AND u.is_active = 1 
                   AND r.is_active = 1
                 ORDER BY aa.priority DESC
                 LIMIT 1
-            """, (route_name, route_name, route_name))
+            """, (route_name, route_name))
             
             result = cursor.fetchone()
             if result:
@@ -176,7 +176,7 @@ class AutoAssignmentService:
         
         try:
             cursor.execute("""
-                SELECT r.id, r.name, r.code, r.route_number, aa.priority, d.name as district_name
+                SELECT r.id, r.name, r.route_number, aa.priority, d.name as district_name
                 FROM admin_assignments aa
                 JOIN routes r ON aa.route_id = r.id
                 LEFT JOIN districts d ON r.district_id = d.id
