@@ -21,7 +21,7 @@ def list_districts():
     """List all districts (accessible by all authenticated users)"""
     try:
         # Allow admins and heads to view districts
-        from utils.decorators import get_current_user
+        from ..utils.decorators import get_current_user
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Authentication required'}), 401
@@ -105,7 +105,7 @@ def create_district():
 def get_district(district_id):
     """Get district details with routes and assigned admins"""
     try:
-        from utils.decorators import get_current_user
+        from ..utils.decorators import get_current_user
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Authentication required'}), 401
@@ -244,7 +244,7 @@ def delete_district(district_id):
 def list_routes():
     """List all routes with optional district filter"""
     try:
-        from utils.decorators import get_current_user
+        from ..utils.decorators import get_current_user
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Authentication required'}), 401
@@ -352,7 +352,7 @@ def create_route():
 def get_route(route_id):
     """Get route details with buses"""
     try:
-        from utils.decorators import get_current_user
+        from ..utils.decorators import get_current_user
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Authentication required'}), 401
@@ -481,7 +481,7 @@ def delete_route(route_id):
 def list_buses():
     """List all buses with optional route/district filter"""
     try:
-        from utils.decorators import get_current_user
+        from ..utils.decorators import get_current_user
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Authentication required'}), 401
@@ -831,7 +831,7 @@ def remove_admin_assignment(assignment_id):
 def get_admin_districts(admin_id):
     """Get all districts assigned to an admin"""
     try:
-        from utils.decorators import get_current_user
+        from ..utils.decorators import get_current_user
         user = get_current_user()
         if not user:
             return jsonify({'error': 'Authentication required'}), 401

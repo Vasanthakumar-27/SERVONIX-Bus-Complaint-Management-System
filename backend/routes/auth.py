@@ -796,7 +796,7 @@ def change_password():
         if not auth_result:
             return jsonify({'error': 'Current password is incorrect'}), 400
         
-        from database.connection import get_db
+        from ..database.connection import get_db
         conn = get_db()
         cursor = conn.cursor()
         

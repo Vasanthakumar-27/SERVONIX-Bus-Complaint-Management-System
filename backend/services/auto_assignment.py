@@ -250,10 +250,10 @@ class AutoAssignmentService:
         cursor = conn.cursor()
         
         try:
-            from utils.helpers import format_datetime_for_db
+            from ..utils.helpers import format_datetime_for_db
             
             # Get current assignment for logging
-            cursor.execute("SELECT assigned_to, route FROM complaints WHERE id = ?", (complaint_id,))
+            cursor.execute("SELECT assigned_to, route_number FROM complaints WHERE id = ?", (complaint_id,))
             current = cursor.fetchone()
             if not current:
                 logger.warning(f"Complaint {complaint_id} not found for reassignment")
