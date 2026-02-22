@@ -143,21 +143,10 @@ def create_complaint():
         if media_ids:
             for media_id in media_ids:
                 try:
-                    # First get the file info from media_files
                     cursor.execute("""
-                        SELECT file_name, file_path, mime_type, file_size, user_id
-                        FROM media_files WHERE id = ?
-                    """, (media_id,))
-                    media_file = cursor.fetchone()
-                    
-                    if media_file:
-                        cursor.execute("""
-                            INSERT INTO complaint_media (complaint_id, file_name, file_path, 
-                                                        file_type, file_size, mime_type, uploaded_by, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (complaint_id, media_file['file_name'], media_file['file_path'],
-                              media_file['mime_type'], media_file['file_size'], media_file['mime_type'],
-                              media_file['user_id'], current_time))
+                        INSERT OR IGNORE INTO complaint_media (complaint_id, media_id, created_at)
+                        VALUES (?, ?, ?)
+                    """, (complaint_id, media_id, current_time))
                 except Exception as media_err:
                     logger.warning(f"Failed to link media {media_id} to complaint {complaint_id}: {media_err}")
         

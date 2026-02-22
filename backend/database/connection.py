@@ -91,7 +91,20 @@ def init_db():
       FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
     )
     ''')
-    
+    # Migrations: add missing columns to existing complaints tables
+    for _col_sql in [
+        'ALTER TABLE complaints ADD COLUMN name TEXT DEFAULT NULL',
+        'ALTER TABLE complaints ADD COLUMN email TEXT DEFAULT NULL',
+        'ALTER TABLE complaints ADD COLUMN category TEXT DEFAULT NULL',
+        'ALTER TABLE complaints ADD COLUMN route TEXT DEFAULT NULL',
+        'ALTER TABLE complaints ADD COLUMN district_id INTEGER DEFAULT NULL',
+        'ALTER TABLE complaints ADD COLUMN proof_path TEXT DEFAULT NULL',
+    ]:
+        try:
+            cursor.execute(_col_sql)
+        except Exception:
+            pass  # Column already exists
+
     # Create feedback table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS feedback (
