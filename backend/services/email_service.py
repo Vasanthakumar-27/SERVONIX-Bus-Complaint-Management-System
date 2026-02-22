@@ -117,35 +117,39 @@ class EmailService:
                 except Exception:
                     logger.exception('Failed to write dev email log')
                 return True
-            # --- Priority 3: SMTP (local dev with credentials) ---
+            # --- Priority 3: SMTP ---
             else:
-                # Production mode: send via SMTP
-                # Try STARTTLS (port 587) first, fall back to SSL (port 465)
+                # Try SSL (port 465) FIRST — more reliable on cloud hosts (Render etc.)
+                # because it opens a direct TLS connection without a STARTTLS handshake
+                # that intermediate firewalls can block.
                 sent = False
                 last_err = None
-                # --- Attempt 1: STARTTLS on configured port (default 587) ---
+                # --- Attempt 1: SMTP_SSL on port 465 ---
                 try:
-                    with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=self.smtp_timeout) as server:
-                        server.ehlo()
-                        server.starttls()
+                    with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=self.smtp_timeout) as server:
                         server.ehlo()
                         server.login(self.sender_email, self.sender_password)
                         server.send_message(msg)
                     sent = True
-                except Exception as starttls_err:
-                    last_err = starttls_err
-                    logger.warning(f"STARTTLS failed ({self.smtp_port}): {starttls_err} — trying SSL:465")
-                # --- Attempt 2: SMTP_SSL on port 465 ---
+                    logger.info(f"[SMTP SSL:465] Email sent to {to_email}: {subject}")
+                except Exception as ssl_err:
+                    last_err = ssl_err
+                    logger.warning(f"SSL:465 failed: {ssl_err} — trying STARTTLS:{self.smtp_port}")
+                # --- Attempt 2: STARTTLS on configured port (default 587) ---
                 if not sent:
                     try:
-                        with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=self.smtp_timeout) as server:
+                        with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=self.smtp_timeout) as server:
+                            server.ehlo()
+                            server.starttls()
+                            server.ehlo()
                             server.login(self.sender_email, self.sender_password)
                             server.send_message(msg)
                         sent = True
-                    except Exception as ssl_err:
-                        logger.error(f"SSL:465 also failed: {ssl_err} (original error: {last_err})")
+                        logger.info(f"[SMTP STARTTLS:{self.smtp_port}] Email sent to {to_email}: {subject}")
+                    except Exception as starttls_err:
+                        logger.error(f"STARTTLS:{self.smtp_port} also failed: {starttls_err} (SSL error: {last_err})")
+                        last_err = starttls_err
                 if sent:
-                    logger.info(f"Email sent to {to_email}: {subject}")
                     return True
                 raise last_err or Exception("All SMTP attempts failed")
                 
@@ -201,20 +205,29 @@ class EmailService:
                 return False, f'Resend API error: {e}'
         if self.development_mode:
             return False, 'Development mode — no credentials configured'
-        # SMTP connection test
+        # SMTP connection test — try SSL:465 first (same order as _send_email)
+        try:
+            with smtplib.SMTP_SSL(self.smtp_server, 465, timeout=self.smtp_timeout) as server:
+                server.ehlo()
+                server.login(self.sender_email, self.sender_password)
+            return True, f'SMTP SSL:465 login to {self.smtp_server} as {self.sender_email} succeeded'
+        except smtplib.SMTPAuthenticationError as e:
+            return False, f'SMTP authentication failed on SSL:465 — check EMAIL_SENDER and EMAIL_PASSWORD (use Gmail App Password, not your account password): {e}'
+        except Exception as ssl_err:
+            pass  # fall through to STARTTLS
         try:
             with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=self.smtp_timeout) as server:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
                 server.login(self.sender_email, self.sender_password)
-            return True, f'SMTP login to {self.smtp_server}:{self.smtp_port} as {self.sender_email} succeeded'
+            return True, f'SMTP STARTTLS:{self.smtp_port} login to {self.smtp_server} as {self.sender_email} succeeded'
         except smtplib.SMTPAuthenticationError as e:
-            return False, f'SMTP authentication failed — check EMAIL_SENDER and EMAIL_PASSWORD: {e}'
+            return False, f'SMTP authentication failed — check EMAIL_SENDER and EMAIL_PASSWORD (use Gmail App Password, not your account password): {e}'
         except smtplib.SMTPConnectError as e:
-            return False, f'Cannot connect to {self.smtp_server}:{self.smtp_port} — port may be blocked on this host: {e}'
+            return False, f'Cannot connect to {self.smtp_server} on ports 465 or {self.smtp_port} — both are blocked on this host. Use Resend API instead: {e}'
         except Exception as e:
-            return False, f'SMTP error: {e}'
+            return False, f'SMTP error on both ports: {e}'
 
     # ------------------------------------------------------------------ #
 
