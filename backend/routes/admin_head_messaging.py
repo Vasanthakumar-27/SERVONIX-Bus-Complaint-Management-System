@@ -74,11 +74,11 @@ def send_admin_head_message():
         
         message_id = cursor.lastrowid
         
-        # Update complaint if escalated
+        # Update complaint status when escalated to head
         if complaint_id:
             cursor.execute('''
                 UPDATE complaints 
-                SET forwarded_to_head = 1, updated_at = ?
+                SET updated_at = ?
                 WHERE id = ?
             ''', (format_datetime_for_db(), complaint_id))
         

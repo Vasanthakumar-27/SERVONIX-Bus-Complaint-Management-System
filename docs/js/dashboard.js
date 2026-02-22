@@ -476,7 +476,7 @@ async function handleCreateAdmin(e) {
     }
     
     try {
-        const response = await apiRequest('/api/admin/create', 'POST', {
+        const response = await apiRequest('/api/head/create-admin', 'POST', {
             name, email, password
         });
         
@@ -503,7 +503,7 @@ async function handleCreateAdmin(e) {
 // Toggle admin status
 async function toggleAdminStatus(adminId, currentStatus) {
     try {
-        const response = await apiRequest(`/api/head/admin/${adminId}/toggle`, 'PUT');
+        const response = await apiRequest(`/api/head/admins/${adminId}/toggle`, 'PUT');
 
         if (response.ok) {
             const data = await response.json();
@@ -530,7 +530,7 @@ async function deactivateAdmin(adminId, adminName) {
         `Are you sure you want to deactivate ${adminName}? This will log them out immediately.`,
         async () => {
             try {
-                const response = await apiRequest(`/api/admin/${adminId}/deactivate`, 'DELETE');
+                const response = await apiRequest(`/api/head/admins/${adminId}`, 'DELETE');
                 
                 if (response.ok) {
                     const data = await response.json();

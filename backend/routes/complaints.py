@@ -411,6 +411,45 @@ def get_complaint_detail(complaint_id):
     return jsonify(complaint)
 
 
+@complaints_bp.route('/complaints/<int:complaint_id>/status', methods=['PUT'])
+def update_complaint_status(complaint_id):
+    """Update complaint status only (admin/head shortcut endpoint)"""
+    user = require_admin_auth()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    try:
+        data = request.get_json() or {}
+        new_status = data.get('status', '').strip()
+        valid_statuses = ('pending', 'in-progress', 'resolved', 'rejected')
+        if new_status not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, assigned_to, status FROM complaints WHERE id = ?', (complaint_id,))
+        complaint = cursor.fetchone()
+        if not complaint:
+            cursor.close()
+            conn.close()
+            return jsonify({'error': 'Complaint not found'}), 404
+        # Regular admins can only update their assigned complaints
+        if user['role'] == 'admin' and complaint['assigned_to'] != user['id']:
+            cursor.close()
+            conn.close()
+            return jsonify({'error': 'Not authorized to update this complaint'}), 403
+        resolved_at = "datetime('now')" if new_status == 'resolved' else 'NULL'
+        cursor.execute(f'''
+            UPDATE complaints SET status = ?, updated_at = datetime('now'),
+            resolved_at = {resolved_at} WHERE id = ?
+        ''', (new_status, complaint_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'message': 'Status updated', 'status': new_status}), 200
+    except Exception as e:
+        logger.error(f"Error updating complaint status: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
 @complaints_bp.route('/my/complaints', methods=['GET'])
 def list_my_complaints():
     """List my complaints (legacy endpoint)"""

@@ -5922,7 +5922,7 @@ function deleteSelectedAdmins() {
             try {
                 const token = localStorage.getItem('token');
                 for (const id of ids) {
-                    await fetch(`${getAPIBase()}/api/head/delete-admin/${id}`, {
+                    await fetch(`${getAPIBase()}/api/head/admins/${id}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });

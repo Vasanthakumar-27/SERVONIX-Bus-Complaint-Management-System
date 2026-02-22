@@ -1092,3 +1092,177 @@ def export_admins_pdf():
     except Exception as e:
         logger.error(f"Error exporting admins PDF: {e}")
         return jsonify({'error': 'Failed to export PDF'}), 500
+
+
+# ============================================================
+# HEAD → ADMIN MESSAGING (inline notification messages)
+# ============================================================
+
+@head_bp.route('/admin/<int:admin_id>/messages', methods=['GET'])
+def get_admin_messages(admin_id):
+    """Get messages between head and a specific admin"""
+    head = require_head_auth()
+    if not head:
+        return jsonify({'error': 'head auth required'}), 401
+    try:
+        include_read = request.args.get('include_read', 'true').lower() == 'true'
+        limit = int(request.args.get('limit', 50))
+        conn = get_db()
+        cursor = conn.cursor()
+        query = '''
+            SELECT m.id, m.sender_id, m.receiver_id, m.subject, m.body as message,
+                   m.is_read, m.created_at,
+                   s.name as sender_name, s.role as sender_role
+            FROM messages m
+            JOIN users s ON s.id = m.sender_id
+            WHERE (m.sender_id = ? AND m.receiver_id = ?)
+               OR (m.sender_id = ? AND m.receiver_id = ?)
+        '''
+        params = [head['id'], admin_id, admin_id, head['id']]
+        if not include_read:
+            query += ' AND m.is_read = 0'
+        query += ' ORDER BY m.created_at DESC LIMIT ?'
+        params.append(limit)
+        cursor.execute(query, params)
+        notifications = [dict(row) for row in cursor.fetchall()]
+        cursor.execute(
+            'SELECT COUNT(*) as c FROM messages WHERE receiver_id = ? AND sender_id = ? AND is_read = 0',
+            (admin_id, head['id'])
+        )
+        unread = cursor.fetchone()['c']
+        cursor.close()
+        conn.close()
+        return jsonify({'notifications': notifications, 'unread_count': unread}), 200
+    except Exception as e:
+        logger.error(f"Error fetching admin messages: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@head_bp.route('/admin/<int:admin_id>/message', methods=['POST'])
+def send_admin_message(admin_id):
+    """Send a message/notification to a specific admin"""
+    head = require_head_auth()
+    if not head:
+        return jsonify({'error': 'head auth required'}), 401
+    data = request.get_json() or {}
+    message = (data.get('message') or '').strip()
+    subject = (data.get('subject') or 'Message from Head Admin').strip()
+    if not message:
+        return jsonify({'error': 'Message is required'}), 400
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, role FROM users WHERE id = ? AND role = ? AND is_active = 1',
+                       (admin_id, 'admin'))
+        admin = cursor.fetchone()
+        if not admin:
+            cursor.close()
+            conn.close()
+            return jsonify({'error': 'Admin not found'}), 404
+        cursor.execute('''
+            INSERT INTO messages (sender_id, receiver_id, subject, body, is_read, created_at)
+            VALUES (?, ?, ?, ?, 0, datetime('now', 'localtime'))
+        ''', (head['id'], admin_id, subject, message))
+        msg_id = cursor.lastrowid
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'message': 'Message sent', 'id': msg_id}), 201
+    except Exception as e:
+        logger.error(f"Error sending message to admin {admin_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@head_bp.route('/admin/<int:admin_id>/messages/<int:notification_id>/read', methods=['PUT'])
+def mark_admin_message_read(admin_id, notification_id):
+    """Mark a specific message as read"""
+    head = require_head_auth()
+    if not head:
+        return jsonify({'error': 'head auth required'}), 401
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE messages SET is_read = 1, read_at = datetime("now") WHERE id = ?',
+            (notification_id,)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'message': 'Marked as read'}), 200
+    except Exception as e:
+        logger.error(f"Error marking message read: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@head_bp.route('/admin/<int:admin_id>/messages/mark-read', methods=['PUT'])
+def mark_all_admin_messages_read(admin_id):
+    """Mark all messages sent to an admin as read"""
+    head = require_head_auth()
+    if not head:
+        return jsonify({'error': 'head auth required'}), 401
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE messages SET is_read = 1, read_at = datetime("now") WHERE sender_id = ? AND receiver_id = ? AND is_read = 0',
+            (head['id'], admin_id)
+        )
+        updated = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'message': 'Marked all as read', 'updated': updated}), 200
+    except Exception as e:
+        logger.error(f"Error marking all messages read: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@head_bp.route('/user-logs', methods=['GET'])
+def get_user_logs():
+    """Get recent user registration and activity logs"""
+    head = require_head_auth()
+    if not head:
+        return jsonify({'error': 'head auth required'}), 401
+    try:
+        limit = int(request.args.get('limit', 50))
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, name, email, role, is_active, created_at, last_active
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT ?
+        ''', (limit,))
+        logs = [dict(row) for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        return jsonify({'logs': logs, 'total': len(logs)}), 200
+    except Exception as e:
+        logger.error(f"Error fetching user logs: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@head_bp.route('/admin/<int:admin_id>/details', methods=['GET'])
+def get_admin_details_for_head(admin_id):
+    """Get details of a specific admin (used by head dashboard messaging modal)"""
+    head = require_head_auth()
+    if not head:
+        return jsonify({'error': 'head auth required'}), 401
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, name, email, phone, is_active, district, route_number, created_at
+            FROM users
+            WHERE id = ? AND role = 'admin'
+        ''', (admin_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if not row:
+            return jsonify({'error': 'Admin not found'}), 404
+        return jsonify({'admin': dict(row)}), 200
+    except Exception as e:
+        logger.error(f"Error fetching admin details {admin_id}: {e}")
+        return jsonify({'error': str(e)}), 500

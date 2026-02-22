@@ -295,7 +295,7 @@ class AutoAssignmentService:
         
         try:
             cursor.execute("""
-                SELECT c.id, c.description, c.route, c.bus_number, c.status, c.created_at,
+                SELECT c.id, c.description, c.route_number as route, c.bus_number, c.status, c.created_at,
                        u.name as user_name
                 FROM complaints c
                 JOIN users u ON c.user_id = u.id

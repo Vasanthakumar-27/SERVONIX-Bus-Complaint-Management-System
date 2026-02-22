@@ -148,9 +148,38 @@ def get_sent_messages():
         return jsonify({'error': str(e)}), 500
 
 
+@messaging_bp.route('/<int:message_id>', methods=['GET'])
+def get_message(message_id):
+    """Get a single message by ID"""
+    user = get_user_by_token(request.headers.get('Authorization', '').replace('Bearer ', ''))
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT m.id, m.sender_id, m.receiver_id, m.subject, m.body as message,
+                   m.is_read, m.created_at, m.read_at,
+                   s.name as sender_name, s.email as sender_email, s.role as sender_role,
+                   r.name as receiver_name, r.email as receiver_email
+            FROM messages m
+            JOIN users s ON s.id = m.sender_id
+            JOIN users r ON r.id = m.receiver_id
+            WHERE m.id = ? AND (m.sender_id = ? OR m.receiver_id = ?)
+        ''', (message_id, user['id'], user['id']))
+        msg = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if not msg:
+            return jsonify({'error': 'Message not found'}), 404
+        return jsonify(dict(msg)), 200
+    except Exception as e:
+        logger.error(f"Error fetching message {message_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @messaging_bp.route('/<int:message_id>/read', methods=['PUT'])
 def mark_message_read(message_id):
-    """Mark a message as read"""
     user = get_user_by_token(request.headers.get('Authorization', '').replace('Bearer ', ''))
     if not user:
         return jsonify({'error': 'Authentication required'}), 401
