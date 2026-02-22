@@ -263,6 +263,13 @@ def register_request():
         elif email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, name)  # logs to console/file
             include_otp_in_response = True
+        else:
+            # SMTP — send synchronously so failures are caught immediately
+            _ok = email_service.send_registration_otp_email(email, otp, name)
+            if not _ok:
+                include_otp_in_response = True
+                email_send_failed = True
+                logger.warning(f"[SMTP] Registration OTP email failed for {email} — returning OTP in response")
             else:
                 logger.info(f"[SMTP] Registration OTP sent to {email}")
 
@@ -451,6 +458,11 @@ def register_resend():
         elif email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, pending['name'])
             include_otp_in_response = True
+        else:
+            # SMTP — send synchronously so failures are caught immediately
+            _ok = email_service.send_registration_otp_email(email, otp, pending['name'])
+            if not _ok:
+                include_otp_in_response = True
                 email_send_failed = True
                 logger.warning(f"[SMTP] Resend registration OTP failed for {email} — returning OTP in response")
             else:
