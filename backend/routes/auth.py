@@ -29,10 +29,11 @@ OTP_LENGTH = 6
 DEV_MODE = os.environ.get('FLASK_ENV', 'development') == 'development'
 
 # If no real email service is configured (no Resend key, no SMTP password),
-# ALWAYS return dev_otp so users can still register/reset passwords.
-# This is a safety net until a transactional email service is connected.
+# return dev_otp so users can still register/reset passwords without email.
+# NOTE: DEV_MODE is intentionally excluded — on Render FLASK_ENV is not set,
+# so DEV_MODE would always be True and OTPs would be exposed even when email works.
 _EMAIL_CONFIGURED = bool(os.environ.get('RESEND_API_KEY', '')) or bool(os.environ.get('EMAIL_PASSWORD', ''))
-SHOW_DEV_OTP = DEV_MODE or not _EMAIL_CONFIGURED
+SHOW_DEV_OTP = not _EMAIL_CONFIGURED  # Only expose OTP when email is NOT configured
 
 # Email validation regex
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
