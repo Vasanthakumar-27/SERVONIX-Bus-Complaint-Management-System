@@ -318,7 +318,7 @@ window.addEventListener('DOMContentLoaded', function() {
   
   const refreshFeedbackBtn = document.getElementById('refreshFeedbackBtn');
   if (refreshFeedbackBtn) {
-    refreshFeedbackBtn.addEventListener('click', loadAllFeedback);
+    refreshFeedbackBtn.addEventListener('click', loadFeedback);
   }
   
   // Setup Print Buttons
@@ -5221,34 +5221,6 @@ async function archiveFeedback(feedbackId) {
         console.error('Error archiving feedback:', error);
         showToast('Network error while archiving feedback', 'error');
     }
-}
-
-// Add event listeners for feedback section
-document.addEventListener('DOMContentLoaded', function() {
-    const refreshFeedbackBtn = document.getElementById('refreshFeedbackBtn');
-    if (refreshFeedbackBtn) {
-        refreshFeedbackBtn.addEventListener('click', loadFeedback);
-    }
-
-    const feedbackSearch = document.getElementById('feedbackSearch');
-    if (feedbackSearch) {
-        feedbackSearch.addEventListener('input', filterFeedback);
-    }
-
-    const feedbackStatusFilter = document.getElementById('feedbackStatusFilter');
-    if (feedbackStatusFilter) {
-        feedbackStatusFilter.addEventListener('change', filterFeedback);
-    }
-
-    const feedbackRatingFilter = document.getElementById('feedbackRatingFilter');
-    if (feedbackRatingFilter) {
-        feedbackRatingFilter.addEventListener('change', filterFeedback);
-    }
-});
-
-function filterFeedback() {
-    // Client-side filtering implementation (optional)
-    loadFeedback();
 }
 
 // ==================== USER DETAILS & COMPLAINT HISTORY ====================
