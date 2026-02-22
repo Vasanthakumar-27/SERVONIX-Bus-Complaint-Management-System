@@ -129,10 +129,10 @@ def create_complaint():
         
         current_time = format_datetime_for_db()
         cursor.execute("""
-            INSERT INTO complaints (user_id, name, email, category, description, route, 
+            INSERT INTO complaints (user_id, name, email, complaint_type, category, description, route, 
                                    bus_number, status, assigned_to, district_id, proof_path, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-        """, (user['id'], user_name, user_email, complaint_type, data['description'], route_number,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+        """, (user['id'], user_name, user_email, complaint_type, complaint_type, data['description'], route_number,
               bus_number, assigned_admin_id, assigned_district_id, media_path, current_time))
         
         complaint_id = cursor.lastrowid
