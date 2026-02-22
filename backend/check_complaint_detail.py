@@ -8,18 +8,16 @@ cursor = conn.cursor()
 
 # Check complaint #25
 cursor.execute('''
-    SELECT c.*, d.name as district_name 
-    FROM complaints c 
-    LEFT JOIN districts d ON c.district_id = d.id 
+    SELECT c.*
+    FROM complaints c
     WHERE c.id = 25
 ''')
 row = cursor.fetchone()
 
 if row:
     print('Complaint #25:')
-    print(f'  District ID: {row["district_id"]}')
-    print(f'  District Name: {row["district_name"]}')
-    print(f'  Route: {row["route"]}')
+    print(f'  Complaint Type: {row["complaint_type"]}')
+    print(f'  Route Number: {row["route_number"]}')
     print()
 else:
     print('Complaint #25 not found')

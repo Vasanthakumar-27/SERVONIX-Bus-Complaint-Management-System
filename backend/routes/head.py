@@ -792,9 +792,9 @@ def get_head_stats():
         """)
         stats['by_status'] = {row['status']: row['count'] for row in cursor.fetchall()}
 
-        # Forwarded complaints
+        # Escalated complaints (complaints with status 'escalated')
         cursor.execute("""
-            SELECT COUNT(*) as count FROM complaints WHERE forwarded_to_head = 1
+            SELECT COUNT(*) as count FROM complaints WHERE status = 'escalated'
         """)
         stats['forwarded_complaints'] = cursor.fetchone()['count']
 
