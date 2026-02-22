@@ -3579,6 +3579,9 @@ function displayUserInfoModal(user, complaints) {
         });
     }
 }
+
+// View complaint from user modal - keeps user modal open, shows on top
+async function viewComplaintFromUserOverlay(complaintId) {
     console.log('[VIEW] viewComplaintFromUserOverlay:', complaintId);
     
     try {
