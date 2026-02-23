@@ -38,20 +38,42 @@ def get_notification_service():
         return None
 
 
-def get_media_files_for_complaint(cursor, complaint_id):
-    """Get all media files associated with a complaint from complaint_media table"""
+def get_media_files_for_complaint(cursor, complaint_id, proof_path=None):
+    """Get all media files associated with a complaint, joining complaint_media with media_files"""
     try:
         cursor.execute("""
-            SELECT id, file_name, file_path, mime_type, file_size
-            FROM complaint_media
-            WHERE complaint_id = ?
+            SELECT mf.id, mf.file_name, mf.file_path, mf.mime_type, mf.file_size
+            FROM complaint_media cm
+            JOIN media_files mf ON cm.media_id = mf.id
+            WHERE cm.complaint_id = ?
         """, (complaint_id,))
         media_files = []
+        linked_paths = set()
         for row in cursor.fetchall():
             media = dict(row)
-            # Construct full URL for media file
-            media['url'] = f"/api/uploads/{media['file_path']}"
+            media['url'] = f"/api/media/{media['file_path']}"
             media_files.append(media)
+            linked_paths.add(media['file_path'])
+
+        # Also surface the proof_path stored directly on the complaint row
+        if proof_path and proof_path not in linked_paths:
+            ext = proof_path.rsplit('.', 1)[-1].lower() if '.' in proof_path else ''
+            mime_map = {
+                'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+                'gif': 'image/gif', 'webp': 'image/webp',
+                'mp4': 'video/mp4', 'avi': 'video/x-msvideo',
+                'mov': 'video/quicktime', 'mkv': 'video/x-matroska',
+                'pdf': 'application/pdf',
+            }
+            media_files.append({
+                'id': None,
+                'file_name': proof_path,
+                'file_path': proof_path,
+                'mime_type': mime_map.get(ext, 'application/octet-stream'),
+                'file_size': None,
+                'url': f"/api/media/{proof_path}",
+            })
+
         return media_files
     except Exception as e:
         logger.error(f"Error getting media files for complaint {complaint_id}: {e}")
@@ -61,7 +83,7 @@ def get_media_files_for_complaint(cursor, complaint_id):
 def enrich_complaints_with_media(cursor, complaints):
     """Add media_files list to each complaint"""
     for complaint in complaints:
-        complaint['media_files'] = get_media_files_for_complaint(cursor, complaint['id'])
+        complaint['media_files'] = get_media_files_for_complaint(cursor, complaint['id'], complaint.get('proof_path'))
     return complaints
 
 
@@ -343,7 +365,7 @@ def list_user_complaints():
             complaint['edit_allowed'] = False
         
         # Add media files
-        complaint['media_files'] = get_media_files_for_complaint(cursor, complaint['id'])
+        complaint['media_files'] = get_media_files_for_complaint(cursor, complaint['id'], complaint.get('proof_path'))
         
         complaints.append(complaint)
     
@@ -393,7 +415,7 @@ def get_complaint_detail(complaint_id):
         return jsonify({'error': 'unauthorized'}), 403
     
     # Add media files
-    complaint['media_files'] = get_media_files_for_complaint(cursor, complaint_id)
+    complaint['media_files'] = get_media_files_for_complaint(cursor, complaint_id, complaint.get('proof_path'))
     
     cursor.close()
     conn.close()

@@ -3071,13 +3071,15 @@
             // Load media URLs (try public route first, fallback to authenticated)
             const mediaFiles = complaint.media_files || [];
             const authenticatedMedia = await Promise.all(mediaFiles.map(async (media) => {
-                if (media.file_type === 'image') {
+                const fileType = media.file_type || media.mime_type || '';
+                const isImageType = fileType === 'image' || fileType.startsWith('image/');
+                if (isImageType) {
                     try {
                         // Extract just the filename from the full path
                         const fileName = media.file_path.split('/').pop();
                         
-                        // Try public uploads route first (no auth needed)
-                        let response = await fetch(`/api/media/${fileName}`);
+                        // Use full API_BASE URL (frontend is on GitHub Pages, not the API server)
+                        let response = await fetch(`${API_BASE}/api/media/${fileName}`);
                         
                         // Fallback to authenticated route
                         if (!response.ok) {
