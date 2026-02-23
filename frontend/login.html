@@ -1175,6 +1175,9 @@
                 hideLoading();
 
                 if (response.ok) {
+                    // Store registration token so verify/resend work after server restart
+                    window._regToken = data.registration_token || '';
+
                     document.getElementById('regOtpStep1').style.display = 'none';
                     document.getElementById('regOtpStep2').style.display = 'block';
                     document.getElementById('regOtpInput').focus();
@@ -1290,7 +1293,7 @@
                 const response = await fetch(`${API_BASE_URL}/api/register-verify`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email.toLowerCase(), otp })
+                    body: JSON.stringify({ email: email.toLowerCase(), otp, registration_token: window._regToken || '' })
                 });
 
                 const data = await response.json();
@@ -1348,13 +1351,15 @@
                 const response = await fetch(`${API_BASE_URL}/api/register-resend`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({ email, registration_token: window._regToken || '' })
                 });
 
                 const data = await response.json();
                 hideLoading();
 
                 if (response.ok) {
+                    // Update stored token with the freshly issued one
+                    if (data.registration_token) window._regToken = data.registration_token;
                     // Handle dev_otp fallback on resend too
                     if (data.dev_otp) {
                         document.getElementById('regOtpInput').value = data.dev_otp;
@@ -1405,6 +1410,7 @@
             if (regOtpTimerInterval) clearInterval(regOtpTimerInterval);
             
             delete window.pendingRegistration;
+            window._regToken = '';
         };
 
         // Forgot Password Handler (Secure OTP-based)

@@ -5,6 +5,7 @@ import secrets
 import hashlib
 import hmac
 import os
+import jwt as pyjwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
@@ -23,6 +24,36 @@ OTP_EXPIRY_MINUTES = 5  # OTP expires in 5 minutes
 OTP_RATE_LIMIT_MAX = 3  # Max 3 OTP requests
 OTP_RATE_LIMIT_WINDOW = 10  # Per 10 minutes
 OTP_LENGTH = 6
+
+
+def _jwt_secret():
+    """Return the JWT signing secret. Falls back to SECRET_KEY."""
+    return os.environ.get('JWT_SECRET') or os.environ.get('SECRET_KEY') or 'servonix-secret-key-change-in-production'
+
+
+def _create_registration_token(name, email, password_hash, otp_hash, expires_at_str):
+    """Return a signed JWT encoding the pending registration so it survives server restarts."""
+    payload = {
+        'type': 'pending_registration',
+        'name': name,
+        'email': email,
+        'password_hash': password_hash,
+        'otp_hash': otp_hash,
+        'expires_at': expires_at_str,
+        'exp': datetime.utcnow() + timedelta(minutes=OTP_EXPIRY_MINUTES + 2),  # slight grace period
+    }
+    return pyjwt.encode(payload, _jwt_secret(), algorithm='HS256')
+
+
+def _decode_registration_token(token):
+    """Decode and return the registration token payload, or None if invalid/expired."""
+    try:
+        payload = pyjwt.decode(token, _jwt_secret(), algorithms=['HS256'])
+        if payload.get('type') != 'pending_registration':
+            return None
+        return payload
+    except Exception:
+        return None
 
 
 def _is_email_configured():
@@ -232,16 +263,16 @@ def register_request():
         password_hashed = generate_password_hash(password)
         expires_at = datetime.now() + timedelta(minutes=OTP_EXPIRY_MINUTES)
         
-        # Delete any existing pending registration for this email
-        cursor.execute("DELETE FROM registration_otp WHERE email = ?", (email,))
-        
         # Store pending registration with hashed OTP
-        cursor.execute("""
-            INSERT INTO registration_otp (name, email, password_hash, otp_hash, expires_at, ip_address)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (name, email, password_hashed, otp_hashed, expires_at.strftime('%Y-%m-%d %H:%M:%S'), client_ip))
-        
-        conn.commit()
+        try:
+            cursor.execute("DELETE FROM registration_otp WHERE email = ?", (email,))
+            cursor.execute("""
+                INSERT INTO registration_otp (name, email, password_hash, otp_hash, expires_at, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (name, email, password_hashed, otp_hashed, expires_at.strftime('%Y-%m-%d %H:%M:%S'), client_ip))
+            conn.commit()
+        except Exception as db_err:
+            logger.warning(f"[register-request] DB insert failed (will rely on token): {db_err}")
         cursor.close()
         conn.close()
         
@@ -273,10 +304,17 @@ def register_request():
             else:
                 logger.info(f"[SMTP] Registration OTP sent to {email}")
 
+        # Build response — also include a signed registration_token so verify works
+        # even if the server restarts and the DB row is lost (Render free tier).
+        registration_token = _create_registration_token(
+            name, email, password_hashed, otp_hashed, expires_at.strftime('%Y-%m-%d %H:%M:%S')
+        )
+
         response_data = {
             'message': 'Verification code sent to your email',
             'email': email,
-            'expires_in': OTP_EXPIRY_MINUTES
+            'expires_in': OTP_EXPIRY_MINUTES,
+            'registration_token': registration_token,
         }
         if include_otp_in_response:
             response_data['dev_otp'] = otp
@@ -302,6 +340,7 @@ def register_verify():
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     otp = data.get('otp', '').strip()
+    registration_token = data.get('registration_token', '').strip()
     
     if not email or not otp:
         return jsonify({'error': 'Email and OTP are required'}), 400
@@ -313,20 +352,28 @@ def register_verify():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        
-        # Get pending registration
-        cursor.execute("""
-            SELECT id, name, email, password_hash, otp_hash, expires_at 
-            FROM registration_otp 
-            WHERE email = ?
-        """, (email,))
-        
-        pending = cursor.fetchone()
-        
-        if not pending:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'No pending registration found. Please register again.'}), 400
+
+        # --- Primary path: decode signed registration_token (survives server restarts) ---
+        token_payload = _decode_registration_token(registration_token) if registration_token else None
+
+        if token_payload and token_payload.get('email') == email:
+            pending = token_payload  # use token data as the pending record
+            pending_id = None  # no DB row to delete (or it may still exist)
+            logger.info(f"[register-verify] Using registration_token for {email}")
+        else:
+            # --- Fallback: DB lookup ---
+            cursor.execute("""
+                SELECT id, name, email, password_hash, otp_hash, expires_at 
+                FROM registration_otp 
+                WHERE email = ?
+            """, (email,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.close()
+                conn.close()
+                return jsonify({'error': 'No pending registration found. Please register again.'}), 400
+            pending = dict(row)
+            pending_id = pending['id']
         
         # Verify OTP hash
         if not verify_otp_hash(otp, pending['otp_hash']):
@@ -338,9 +385,10 @@ def register_verify():
         # Check expiry
         expires_at = datetime.strptime(pending['expires_at'], '%Y-%m-%d %H:%M:%S')
         if datetime.now() > expires_at:
-            # Delete expired pending registration
-            cursor.execute("DELETE FROM registration_otp WHERE id = ?", (pending['id'],))
-            conn.commit()
+            # Delete expired DB row if it exists
+            if pending_id:
+                cursor.execute("DELETE FROM registration_otp WHERE id = ?", (pending_id,))
+                conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'error': 'Verification code has expired. Please register again.'}), 400
@@ -348,8 +396,9 @@ def register_verify():
         # Check if email was registered while OTP was pending
         cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
         if cursor.fetchone():
-            cursor.execute("DELETE FROM registration_otp WHERE id = ?", (pending['id'],))
-            conn.commit()
+            if pending_id:
+                cursor.execute("DELETE FROM registration_otp WHERE id = ?", (pending_id,))
+                conn.commit()
             cursor.close()
             conn.close()
             return jsonify({'error': 'Email is already registered. Please login.'}), 409
@@ -366,8 +415,14 @@ def register_verify():
         
         user_id = cursor.lastrowid
         
-        # Delete pending registration
-        cursor.execute("DELETE FROM registration_otp WHERE id = ?", (pending['id'],))
+        # Delete pending registration row (best effort)
+        try:
+            if pending_id:
+                cursor.execute("DELETE FROM registration_otp WHERE id = ?", (pending_id,))
+            else:
+                cursor.execute("DELETE FROM registration_otp WHERE email = ?", (email,))
+        except Exception:
+            pass
         
         # Reset rate limit for this email
         cursor.execute("DELETE FROM otp_rate_limit WHERE email = ?", (email,))
@@ -399,6 +454,7 @@ def register_resend():
     """
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
+    registration_token = data.get('registration_token', '').strip()
     
     if not email:
         return jsonify({'error': 'Email is required'}), 400
@@ -406,18 +462,23 @@ def register_resend():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        
-        # Get pending registration
-        cursor.execute("""
-            SELECT id, name FROM registration_otp WHERE email = ?
-        """, (email,))
-        
-        pending = cursor.fetchone()
-        
-        if not pending:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'No pending registration found'}), 400
+
+        # Resolve pending registration: token first, then DB fallback
+        token_payload = _decode_registration_token(registration_token) if registration_token else None
+        if token_payload and token_payload.get('email') == email:
+            reg_name = token_payload['name']
+            reg_password_hash = token_payload['password_hash']
+            pending_id = None
+        else:
+            cursor.execute("SELECT id, name, password_hash FROM registration_otp WHERE email = ?", (email,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.close()
+                conn.close()
+                return jsonify({'error': 'No pending registration found'}), 400
+            reg_name = row['name']
+            reg_password_hash = row['password_hash']
+            pending_id = row['id']
         
         # Check rate limiting
         allowed, remaining = check_rate_limit(email)
@@ -433,15 +494,26 @@ def register_resend():
         otp = generate_secure_otp()
         otp_hashed = hash_otp(otp)
         expires_at = datetime.now() + timedelta(minutes=OTP_EXPIRY_MINUTES)
+        expires_at_str = expires_at.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Update pending registration with new OTP
-        cursor.execute("""
-            UPDATE registration_otp 
-            SET otp_hash = ?, expires_at = ?, created_at = datetime('now')
-            WHERE id = ?
-        """, (otp_hashed, expires_at.strftime('%Y-%m-%d %H:%M:%S'), pending['id']))
-        
-        conn.commit()
+        # Update DB row if it exists (best effort)
+        try:
+            if pending_id:
+                cursor.execute("""
+                    UPDATE registration_otp 
+                    SET otp_hash = ?, expires_at = ?, created_at = datetime('now')
+                    WHERE id = ?
+                """, (otp_hashed, expires_at_str, pending_id))
+            else:
+                # Re-insert in case DB was wiped (token was used)
+                cursor.execute("DELETE FROM registration_otp WHERE email = ?", (email,))
+                cursor.execute("""
+                    INSERT INTO registration_otp (name, email, password_hash, otp_hash, expires_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (reg_name, email, reg_password_hash, otp_hashed, expires_at_str))
+            conn.commit()
+        except Exception as db_err:
+            logger.warning(f"[register-resend] DB update failed (will rely on token): {db_err}")
         cursor.close()
         conn.close()
         
@@ -450,17 +522,17 @@ def register_resend():
         include_otp_in_response = not _is_email_configured()
         email_send_failed = False
         if email_service.resend_api_key:
-            _ok = email_service.send_registration_otp_email(email, otp, pending['name'])
+            _ok = email_service.send_registration_otp_email(email, otp, reg_name)
             if not _ok:
                 include_otp_in_response = True
                 email_send_failed = True
                 logger.warning(f"[Resend] Resend registration OTP failed for {email} — returning OTP in response")
         elif email_service.development_mode:
-            email_service.send_registration_otp_email(email, otp, pending['name'])
+            email_service.send_registration_otp_email(email, otp, reg_name)
             include_otp_in_response = True
         else:
             # SMTP — send synchronously so failures are caught immediately
-            _ok = email_service.send_registration_otp_email(email, otp, pending['name'])
+            _ok = email_service.send_registration_otp_email(email, otp, reg_name)
             if not _ok:
                 include_otp_in_response = True
                 email_send_failed = True
@@ -468,9 +540,15 @@ def register_resend():
             else:
                 logger.info(f"[SMTP] Resend registration OTP sent to {email}")
 
+        # Issue a fresh registration_token with the new OTP
+        new_registration_token = _create_registration_token(
+            reg_name, email, reg_password_hash, otp_hashed, expires_at_str
+        )
+
         response_data = {
             'message': 'New verification code sent',
-            'expires_in': OTP_EXPIRY_MINUTES
+            'expires_in': OTP_EXPIRY_MINUTES,
+            'registration_token': new_registration_token,
         }
         if include_otp_in_response:
             response_data['dev_otp'] = otp
