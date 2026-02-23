@@ -5561,13 +5561,10 @@ async function deleteComplaint(complaintId) {
             }
             
             try {
-                const response = await apiRequest('/api/messages/send', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        recipient_email: email,
-                        subject: 'Message from SERVONIX Admin',
-                        message: message
-                    })
+                const response = await apiRequest('/api/messages/send', 'POST', {
+                    recipient_email: email,
+                    subject: 'Message from SERVONIX Admin',
+                    message: message
                 });
                 
                 if (response.ok) {
@@ -5588,13 +5585,26 @@ async function deleteComplaint(complaintId) {
         }
         
         function openMediaViewer(fileUrl, fileName, mimeType) {
+            // Resolve relative API paths to absolute URLs (frontend is on GitHub Pages)
+            if (fileUrl && fileUrl.startsWith('/')) {
+                fileUrl = getAPIBase() + fileUrl;
+            }
+
             // Remove existing modal
             const existingModal = document.getElementById('mediaViewerModal');
             if (existingModal) existingModal.remove();
-            
-            const isImage = mimeType && mimeType.startsWith('image/');
-            const isVideo = mimeType && mimeType.startsWith('video/');
-            const isPDF = mimeType && (mimeType === 'application/pdf' || mimeType.includes('pdf'));
+
+            // Auto-detect mimeType from filename if not provided
+            if (!mimeType || mimeType === 'undefined') {
+                const ext = (fileName || fileUrl || '').split('.').pop().toLowerCase();
+                const mime = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif',
+                               webp:'image/webp', mp4:'video/mp4', avi:'video/x-msvideo',
+                               mov:'video/quicktime', mkv:'video/x-matroska', pdf:'application/pdf' };
+                mimeType = mime[ext] || 'application/octet-stream';
+            }
+            const isImage = mimeType.startsWith('image/');
+            const isVideo = mimeType.startsWith('video/');
+            const isPDF = mimeType === 'application/pdf' || mimeType.includes('pdf');
             
             let mediaContent = '';
             if (isImage) {
