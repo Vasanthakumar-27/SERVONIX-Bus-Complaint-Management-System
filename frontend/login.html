@@ -1182,15 +1182,14 @@
                     document.getElementById('regOtpStep2').style.display = 'block';
                     document.getElementById('regOtpInput').focus();
 
-                    // OTP will be sent to the registered email
-                    if (data.email_failed) {
-                        showAlert('⚠️ Email delivery failed. Please check your email or try resending.', 'warning');
-                    } else {
-                        showAlert('✅ Verification code sent to your email! Check your inbox.', 'success');
-                    }
+                    // Show success message immediately
+                    showAlert('✅ Verification code sent! Check your email inbox.', 'success');
 
                     // Start countdown timer
                     startRegOTPTimer();
+                } else if (response.status === 400 && data.email_failed) {
+                    // Email delivery failed
+                    showAlert('⚠️ Failed to send verification code. Please try resending or contact support.', 'error');
                 } else if (response.status === 409) {
                     showAlert(data.error || 'Email already registered', 'error');
                     closeRegOTPModal();
@@ -1344,12 +1343,10 @@
                 if (response.ok) {
                     // Update stored token with the freshly issued one
                     if (data.registration_token) window._regToken = data.registration_token;
-                    // Always show email sent confirmation
-                    if (data.email_failed) {
-                        showAlert('⚠️ Email delivery failed. Please check your email or contact support.', 'warning');
-                    } else {
-                        showAlert('✅ New verification code sent to your email!', 'success');
-                    }
+                    
+                    // Show success message immediately
+                    showAlert('✅ New verification code sent! Check your email.', 'success');
+                    
                     hideRegOTPError();
                     document.getElementById('regOtpInput').value = '';
                     document.getElementById('regOtpInput').focus();
@@ -1357,6 +1354,9 @@
                     // Restart timer
                     startRegOTPTimer();
                     document.getElementById('regOtpTimer').style.color = '#10b981';
+                } else if (response.status === 400 && data.email_failed) {
+                    // Email delivery failed
+                    showAlert('⚠️ Failed to send verification code. Please try again.', 'error');
                 } else if (response.status === 429) {
                     showAlert(data.error || 'Too many attempts', 'error');
                 } else {
@@ -1549,12 +1549,8 @@
                     document.getElementById('otpStep2').style.display = 'block';
                     document.getElementById('otpInput').focus();
 
-                    // OTP will be sent to the registered email
-                    if (data.email_failed) {
-                        showAlert('⚠️ Email delivery failed. Please try resending or contact support.', 'warning');
-                    } else {
-                        showAlert('✅ OTP sent to your email!', 'success');
-                    }
+                    // Show success message immediately
+                    showAlert('✅ OTP sent to your email! Check your inbox.', 'success');
 
                     // Start countdown timer (5 minutes)
                     startOTPTimer();
@@ -1563,6 +1559,9 @@
                     if (data.requests_remaining !== undefined) {
                         console.log(`[OTP] Requests remaining: ${data.requests_remaining}`);
                     }
+                } else if (response.status === 400 && data.email_failed) {
+                    // Email delivery failed
+                    showAlert('⚠️ Failed to send OTP. Please try resending or contact support.', 'error');
                 } else if (response.status === 429) {
                     // Rate limited
                     showAlert(data.error || 'Too many requests. Please wait and try again.', 'error');

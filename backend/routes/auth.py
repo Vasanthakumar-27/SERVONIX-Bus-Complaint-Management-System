@@ -105,6 +105,69 @@ def email_test():
     return jsonify(result), (200 if ok else 500)
 
 
+@auth_bp.route('/email-diagnose', methods=['GET'])
+def email_diagnose():
+    """
+    Comprehensive email diagnostics endpoint.
+    Provides detailed information about email configuration and troubleshooting steps.
+    """
+    svc = _get_email_service()
+    status = svc.get_status()
+    conn_ok, conn_msg = svc.test_smtp_connection()
+    
+    diagnostics = {
+        'timestamp': datetime.now().isoformat(),
+        'status': status,
+        'connection_test': {
+            'ok': conn_ok,
+            'message': conn_msg
+        },
+        'troubleshooting': []
+    }
+    
+    if not conn_ok:
+        if status.get('mode') == 'development':
+            diagnostics['troubleshooting'].append({
+                'issue': 'Development mode - no email credentials configured',
+                'solution': 'Set EMAIL_PASSWORD in .env and restart the server'
+            })
+        elif status.get('mode') == 'resend':
+            if status.get('sandbox'):
+                diagnostics['troubleshooting'].append({
+                    'issue': 'Resend sandbox - only delivers to account owner',
+                    'solution': 'Set RESEND_FROM to a verified domain address in .env'
+                })
+            else:
+                diagnostics['troubleshooting'].append({
+                    'issue': 'Resend API key issue',
+                    'solution': 'Check RESEND_API_KEY in .env is correct'
+                })
+        elif status.get('mode') == 'smtp':
+            if 'port' in conn_msg.lower() or 'connect' in conn_msg.lower():
+                diagnostics['troubleshooting'].append({
+                    'issue': 'Cannot connect to SMTP server (port blocked)',
+                    'solution': 'Use Resend API instead: set RESEND_API_KEY in .env',
+                    'resend_signup_url': 'https://resend.com'
+                })
+            elif 'authentication' in conn_msg.lower():
+                diagnostics['troubleshooting'].append({
+                    'issue': 'SMTP authentication failed',
+                    'solution': 'Check EMAIL_SENDER and EMAIL_PASSWORD in .env. Use Gmail App Password, not your account password.'
+                })
+            else:
+                diagnostics['troubleshooting'].append({
+                    'issue': 'SMTP connection error',
+                    'solution': 'Check all SMTP settings and email credentials in .env'
+                })
+    else:
+        diagnostics['troubleshooting'].append({
+            'status': 'Email service is working correctly',
+            'message': 'OTP emails should be delivered successfully'
+        })
+    
+    return jsonify(diagnostics), 200
+
+
 def generate_secure_otp():
     """Generate a cryptographically secure 6-digit OTP"""
     return ''.join([str(secrets.randbelow(10)) for _ in range(OTP_LENGTH)])
@@ -276,33 +339,28 @@ def register_request():
         cursor.close()
         conn.close()
         
-        # Send OTP via email — strategy depends on configured email service:
-        # • Resend HTTPS API (fast): send synchronously so failures are detected
-        # • Dev mode (no credentials): sync log-only, OTP always returned in response
-        # • SMTP (slow): send synchronously so failures are caught
+        # Send OTP via email
         email_service = _get_email_service()
-        include_otp_in_response = not _is_email_configured()
         email_send_failed = False
-        if email_service.resend_api_key:
-            _ok = email_service.send_registration_otp_email(email, otp, name)
-            if not _ok:
-                include_otp_in_response = True
-                email_send_failed = True
-                logger.warning(f"[Resend] Registration OTP email failed for {email} — returning OTP in response")
+        
+        try:
+            # Try to send OTP via email
+            if email_service.resend_api_key or not email_service.development_mode:
+                # Resend API or SMTP configured
+                _ok = email_service.send_registration_otp_email(email, otp, name)
+                if _ok:
+                    logger.info(f"[OTP] Registration OTP sent successfully to {email}")
+                else:
+                    email_send_failed = True
+                    logger.error(f"[OTP] Failed to send registration OTP to {email}")
             else:
-                logger.info(f"[Resend] Registration OTP sent to {email}")
-        elif email_service.development_mode:
-            email_service.send_registration_otp_email(email, otp, name)  # logs to console/file
-            include_otp_in_response = True
-        else:
-            # SMTP — send synchronously so failures are caught immediately
-            _ok = email_service.send_registration_otp_email(email, otp, name)
-            if not _ok:
-                include_otp_in_response = True
-                email_send_failed = True
-                logger.warning(f"[SMTP] Registration OTP email failed for {email} — returning OTP in response")
-            else:
-                logger.info(f"[SMTP] Registration OTP sent to {email}")
+                # Development mode - log the OTP
+                email_service.send_registration_otp_email(email, otp, name)
+                email_send_failed = True  # Mark as failed in dev mode
+                logger.info(f"[OTP] Development mode - Registration OTP for {email}: {otp}")
+        except Exception as e:
+            email_send_failed = True
+            logger.error(f"[OTP] Exception sending registration OTP: {str(e)}")
 
         # Build response — also include a signed registration_token so verify works
         # even if the server restarts and the DB row is lost (Render free tier).
@@ -311,21 +369,22 @@ def register_request():
         )
 
         response_data = {
-            'message': 'Verification code sent to your email',
             'email': email,
             'expires_in': OTP_EXPIRY_MINUTES,
             'registration_token': registration_token,
         }
         
-        # Never include OTP in response - always send via email
-        # Log for debugging purposes only
         if email_send_failed:
+            # Email delivery failed - let frontend know
+            response_data['message'] = 'Failed to send verification code to email. Please check your email configuration or contact support.'
             response_data['email_failed'] = True
-            logger.error(f"[OTP] Registration email send failed for {email}. OTP: {otp}")
+            logger.error(f"[OTP] Registration email failed for {email}")
+            return jsonify(response_data), 400  # Return 400 on email failure
         else:
-            logger.info(f"[OTP] Registration OTP sent via email to {email}")
-
-        return jsonify(response_data), 200
+            # Email sent successfully
+            response_data['message'] = 'Verification code sent to your email'
+            logger.info(f"[OTP] Registration OTP sent to {email}")
+            return jsonify(response_data), 200
         
     except Exception as e:
         logger.error(f"Error in register_request: {str(e)}")
@@ -521,27 +580,26 @@ def register_resend():
         conn.close()
         
         # Send OTP via email — same strategy as register_request
+        # Send OTP via email
         email_service = _get_email_service()
-        include_otp_in_response = not _is_email_configured()
         email_send_failed = False
+        
         if email_service.resend_api_key:
             _ok = email_service.send_registration_otp_email(email, otp, reg_name)
             if not _ok:
-                include_otp_in_response = True
                 email_send_failed = True
-                logger.warning(f"[Resend] Resend registration OTP failed for {email} — returning OTP in response")
+                logger.error(f"[OTP] Failed to resend registration OTP to {email}")
         elif email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, reg_name)
-            include_otp_in_response = True
+            email_send_failed = True
         else:
             # SMTP — send synchronously so failures are caught immediately
             _ok = email_service.send_registration_otp_email(email, otp, reg_name)
             if not _ok:
-                include_otp_in_response = True
                 email_send_failed = True
-                logger.warning(f"[SMTP] Resend registration OTP failed for {email} — returning OTP in response")
+                logger.error(f"[OTP] Failed to resend registration OTP to {email}")
             else:
-                logger.info(f"[SMTP] Resend registration OTP sent to {email}")
+                logger.info(f"[OTP] Resend registration OTP sent to {email}")
 
         # Issue a fresh registration_token with the new OTP
         new_registration_token = _create_registration_token(
@@ -549,20 +607,19 @@ def register_resend():
         )
 
         response_data = {
-            'message': 'New verification code sent',
             'expires_in': OTP_EXPIRY_MINUTES,
             'registration_token': new_registration_token,
         }
         
-        # Never include OTP in response - always send via email
-        # Log for debugging purposes only
         if email_send_failed:
+            response_data['message'] = 'Failed to send new verification code. Please try again or contact support.'
             response_data['email_failed'] = True
-            logger.error(f"[OTP] Registration resend email failed for {email}. OTP: {otp}")
+            logger.error(f"[OTP] Resend registration OTP failed for {email}")
+            return jsonify(response_data), 400
         else:
-            logger.info(f"[OTP] Resend registration OTP sent via email to {email}")
-
-        return jsonify(response_data), 200
+            response_data['message'] = 'New verification code sent to your email'
+            logger.info(f"[OTP] Resend registration OTP sent to {email}")
+            return jsonify(response_data), 200
         
     except Exception as e:
         logger.error(f"Error in register_resend: {str(e)}")
@@ -733,47 +790,41 @@ def request_otp():
         cursor.close()
         conn.close()
         
-        # Send OTP via email — same strategy as register_request
+        # Send OTP via email
         email_service = _get_email_service()
-        include_otp_in_response = not _is_email_configured()
         email_send_failed = False
-        if email_service.resend_api_key:
-            _ok = email_service.send_otp_email(email, otp, user['name'])
-            if not _ok:
-                include_otp_in_response = True
-                email_send_failed = True
-                logger.warning(f"[Resend] Password reset OTP failed for {email} — returning OTP in response")
+        
+        try:
+            if email_service.resend_api_key or not email_service.development_mode:
+                _ok = email_service.send_otp_email(email, otp, user['name'])
+                if _ok:
+                    logger.info(f"[OTP] Password reset OTP sent successfully to {email}")
+                else:
+                    email_send_failed = True
+                    logger.error(f"[OTP] Failed to send password reset OTP to {email}")
             else:
-                logger.info(f"[Resend] Password reset OTP sent to {email} from IP {client_ip}")
-        elif email_service.development_mode:
-            email_service.send_otp_email(email, otp, user['name'])
-            include_otp_in_response = True
-        else:
-            # SMTP — send synchronously so failures are caught immediately
-            _ok = email_service.send_otp_email(email, otp, user['name'])
-            if not _ok:
-                include_otp_in_response = True
+                email_service.send_otp_email(email, otp, user['name'])
                 email_send_failed = True
-                logger.warning(f"[SMTP] Password reset OTP failed for {email} — returning OTP in response")
-            else:
-                logger.info(f"[SMTP] Password reset OTP sent to {email} from IP {client_ip}")
+                logger.info(f"[OTP] Development mode - Password reset OTP for {email}: {otp}")
+        except Exception as e:
+            email_send_failed = True
+            logger.error(f"[OTP] Exception sending password reset OTP: {str(e)}")
 
         response_data = {
-            'message': 'OTP sent successfully to your email',
             'email': email,
             'expires_in': OTP_EXPIRY_MINUTES,
             'requests_remaining': remaining
         }
         
-        # Never include OTP in response - always send via email
-        # Log for debugging purposes only
         if email_send_failed:
+            response_data['message'] = 'Failed to send OTP to your email. Please check your email configuration or try again.'
             response_data['email_failed'] = True
-            logger.error(f"[OTP] Password reset email failed for {email}. OTP: {otp}")
+            logger.error(f"[OTP] Password reset OTP failed for {email}")
+            return jsonify(response_data), 400
         else:
-            logger.info(f"[OTP] Password reset OTP sent via email to {email}")
-            
-        return jsonify(response_data), 200
+            response_data['message'] = 'OTP sent successfully to your email'
+            logger.info(f"[OTP] Password reset OTP sent to {email}")
+            return jsonify(response_data), 200
         
     except Exception as e:
         logger.error(f"Error in request_otp: {str(e)}")
