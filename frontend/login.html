@@ -1182,27 +1182,11 @@
                     document.getElementById('regOtpStep2').style.display = 'block';
                     document.getElementById('regOtpInput').focus();
 
-                    // If backend returned dev_otp (email not configured OR delivery failed), auto-fill and show it
-                    if (data.dev_otp) {
-                        document.getElementById('regOtpInput').value = data.dev_otp;
-                        // Insert a visible dev-OTP banner above the OTP input
-                        const existingBanner = document.getElementById('devOtpBanner');
-                        if (!existingBanner) {
-                            const banner = document.createElement('div');
-                            banner.id = 'devOtpBanner';
-                            const isEmailFailed = data.email_failed;
-                            banner.style.cssText = isEmailFailed
-                                ? 'background:#fee2e2;border:1px solid #ef4444;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b;text-align:center;'
-                                : 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;text-align:center;';
-                            banner.innerHTML = isEmailFailed
-                                ? `<strong>⚠️ Email delivery failed</strong> — use this code: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`
-                                : `<strong>📧 Email not configured</strong> — your OTP is: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`;
-                            const otpInput = document.getElementById('regOtpInput');
-                            otpInput.parentNode.insertBefore(banner, otpInput);
-                        }
-                        showAlert(data.email_failed ? '⚠️ Email delivery failed — OTP shown below' : '⚠️ Email service not set up — OTP shown below for testing', 'warning');
+                    // OTP will be sent to the registered email
+                    if (data.email_failed) {
+                        showAlert('⚠️ Email delivery failed. Please check your email or try resending.', 'warning');
                     } else {
-                        showAlert('✅ Verification code sent to your email!', 'success');
+                        showAlert('✅ Verification code sent to your email! Check your inbox.', 'success');
                     }
 
                     // Start countdown timer
@@ -1360,28 +1344,15 @@
                 if (response.ok) {
                     // Update stored token with the freshly issued one
                     if (data.registration_token) window._regToken = data.registration_token;
-                    // Handle dev_otp fallback on resend too
-                    if (data.dev_otp) {
-                        document.getElementById('regOtpInput').value = data.dev_otp;
-                        const existingBanner = document.getElementById('devOtpBanner');
-                        if (existingBanner) {
-                            const isEmailFailed = data.email_failed;
-                            existingBanner.style.cssText = isEmailFailed
-                                ? 'background:#fee2e2;border:1px solid #ef4444;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b;text-align:center;'
-                                : 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;text-align:center;';
-                            existingBanner.innerHTML = isEmailFailed
-                                ? `<strong>⚠️ Email delivery failed</strong> — use this code: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`
-                                : `<strong>📧 Email not configured</strong> — your OTP is: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`;
-                        }
-                        showAlert(data.email_failed ? '⚠️ Email delivery failed — OTP shown below' : '⚠️ New OTP shown below for testing', 'warning');
+                    // Always show email sent confirmation
+                    if (data.email_failed) {
+                        showAlert('⚠️ Email delivery failed. Please check your email or contact support.', 'warning');
                     } else {
-                        showAlert('✅ New verification code sent!', 'success');
+                        showAlert('✅ New verification code sent to your email!', 'success');
                     }
                     hideRegOTPError();
-                    if (!data.dev_otp) {
-                        document.getElementById('regOtpInput').value = '';
-                        document.getElementById('regOtpInput').focus();
-                    }
+                    document.getElementById('regOtpInput').value = '';
+                    document.getElementById('regOtpInput').focus();
                     
                     // Restart timer
                     startRegOTPTimer();
@@ -1578,24 +1549,9 @@
                     document.getElementById('otpStep2').style.display = 'block';
                     document.getElementById('otpInput').focus();
 
-                    // If backend returned dev_otp (email not configured OR delivery failed), auto-fill and show it
-                    if (data.dev_otp) {
-                        document.getElementById('otpInput').value = data.dev_otp;
-                        const existingBanner = document.getElementById('devOtpBannerPwd');
-                        if (!existingBanner) {
-                            const banner = document.createElement('div');
-                            banner.id = 'devOtpBannerPwd';
-                            const isEmailFailed = data.email_failed;
-                            banner.style.cssText = isEmailFailed
-                                ? 'background:#fee2e2;border:1px solid #ef4444;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b;text-align:center;'
-                                : 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;text-align:center;';
-                            banner.innerHTML = isEmailFailed
-                                ? `<strong>⚠️ Email delivery failed</strong> — use this code: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`
-                                : `<strong>📧 Email not configured</strong> — your OTP is: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`;
-                            const otpInput = document.getElementById('otpInput');
-                            otpInput.parentNode.insertBefore(banner, otpInput);
-                        }
-                        showAlert(data.email_failed ? '⚠️ Email delivery failed — OTP shown below' : '⚠️ Email service not set up — OTP shown below for testing', 'warning');
+                    // OTP will be sent to the registered email
+                    if (data.email_failed) {
+                        showAlert('⚠️ Email delivery failed. Please try resending or contact support.', 'warning');
                     } else {
                         showAlert('✅ OTP sent to your email!', 'success');
                     }

@@ -316,11 +316,14 @@ def register_request():
             'expires_in': OTP_EXPIRY_MINUTES,
             'registration_token': registration_token,
         }
-        if include_otp_in_response:
-            response_data['dev_otp'] = otp
-            if email_send_failed:
-                response_data['email_failed'] = True
-            logger.info(f"[OTP Response] Registration OTP for {email}: {otp}")
+        
+        # Never include OTP in response - always send via email
+        # Log for debugging purposes only
+        if email_send_failed:
+            response_data['email_failed'] = True
+            logger.error(f"[OTP] Registration email send failed for {email}. OTP: {otp}")
+        else:
+            logger.info(f"[OTP] Registration OTP sent via email to {email}")
 
         return jsonify(response_data), 200
         
@@ -550,11 +553,14 @@ def register_resend():
             'expires_in': OTP_EXPIRY_MINUTES,
             'registration_token': new_registration_token,
         }
-        if include_otp_in_response:
-            response_data['dev_otp'] = otp
-            if email_send_failed:
-                response_data['email_failed'] = True
-            logger.info(f"[OTP Response] Resend registration OTP for {email}: {otp}")
+        
+        # Never include OTP in response - always send via email
+        # Log for debugging purposes only
+        if email_send_failed:
+            response_data['email_failed'] = True
+            logger.error(f"[OTP] Registration resend email failed for {email}. OTP: {otp}")
+        else:
+            logger.info(f"[OTP] Resend registration OTP sent via email to {email}")
 
         return jsonify(response_data), 200
         
@@ -758,11 +764,15 @@ def request_otp():
             'expires_in': OTP_EXPIRY_MINUTES,
             'requests_remaining': remaining
         }
-        if include_otp_in_response:
-            response_data['dev_otp'] = otp
-            if email_send_failed:
-                response_data['email_failed'] = True
-            logger.info(f"[OTP Response] Password reset OTP for {email}: {otp}")
+        
+        # Never include OTP in response - always send via email
+        # Log for debugging purposes only
+        if email_send_failed:
+            response_data['email_failed'] = True
+            logger.error(f"[OTP] Password reset email failed for {email}. OTP: {otp}")
+        else:
+            logger.info(f"[OTP] Password reset OTP sent via email to {email}")
+            
         return jsonify(response_data), 200
         
     except Exception as e:
