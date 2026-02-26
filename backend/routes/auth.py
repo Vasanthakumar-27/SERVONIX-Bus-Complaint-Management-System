@@ -391,20 +391,16 @@ def register_request():
             'registration_token': registration_token,
         }
         
-        if email_send_failed:
-            # Email delivery failed (production environment) - let frontend know
-            response_data['message'] = 'Failed to send verification code to email. Please check your email configuration or contact support.'
+        if email_send_failed or email_service.development_mode:
+            # Email failed (e.g. SMTP blocked on Render free tier) or dev mode —
+            # return the plain OTP in the response so the user can still register.
+            response_data['message'] = 'Email delivery unavailable. Use the code shown on screen to verify.'
             response_data['email_failed'] = True
-            logger.error(f"[OTP] Registration email failed for {email}")
-            return jsonify(response_data), 400  # Return 400 only on actual email failure
-        elif email_service.development_mode:
-            # Development mode - OTP is in console/logs
-            response_data['message'] = 'Verification code sent to your email (check console logs for OTP in development mode)'
-            response_data['development_mode'] = True
-            logger.info(f"[OTP] Registration OTP request processed in development mode for {email}")
+            response_data['otp_fallback'] = otp  # plain OTP shown directly in UI
+            logger.warning(f"[OTP] Email unavailable for {email} — returning OTP in response")
             return jsonify(response_data), 200
         else:
-            # Email sent successfully in production
+            # Email sent successfully
             response_data['message'] = 'Verification code sent to your email'
             logger.info(f"[OTP] Registration OTP sent to {email}")
             return jsonify(response_data), 200
