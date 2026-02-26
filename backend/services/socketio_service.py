@@ -54,7 +54,6 @@ class SocketIOService:
         def handle_register(data):
             """Register user session for targeted notifications"""
             user_id = data.get('user_id')
-            token = data.get('token')  # Alternative: support token-based registration
             
             from flask import request
             session_id = request.sid
@@ -67,26 +66,10 @@ class SocketIOService:
                     emit('register_response', {'status': 'success', 'user_id': user_id})
                 except Exception as e:
                     logger.error(f"Error sending register response: {e}")
-            elif token:
-                # Register by token - decode and get user_id
-                try:
-                    from .auth import _decode_registration_token
-                    # For now, just log the token-based registration
-                    logger.info(f"Token-based registration received - Session ID: {session_id}, token_length: {len(token)}")
-                    try:
-                        emit('register_response', {'status': 'success', 'message': 'Registered via token'})
-                    except Exception as e:
-                        logger.error(f"Error sending token register response: {e}")
-                except Exception as e:
-                    logger.warning(f"Token-based registration failed: {e}")
-                    try:
-                        emit('register_response', {'status': 'error', 'message': 'Invalid token'})
-                    except Exception as emit_err:
-                        logger.error(f"Error sending token error response: {emit_err}")
             else:
-                logger.warning(f"Register request received without user_id or token - Session ID: {session_id}")
+                logger.warning(f"Register request received without user_id - Session ID: {session_id}")
                 try:
-                    emit('register_response', {'status': 'error', 'message': 'user_id or token required'})
+                    emit('register_response', {'status': 'error', 'message': 'user_id required'})
                 except Exception as e:
                     logger.error(f"Error sending register error response: {e}")
         
