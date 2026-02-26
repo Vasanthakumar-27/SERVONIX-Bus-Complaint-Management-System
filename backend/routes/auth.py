@@ -50,9 +50,12 @@ def _decode_registration_token(token):
     try:
         payload = pyjwt.decode(token, _jwt_secret(), algorithms=['HS256'])
         if payload.get('type') != 'pending_registration':
+            logger.warning(f"[JWT] Token type mismatch: expected 'pending_registration', got '{payload.get('type')}'")
             return None
+        logger.info(f"[JWT] Token decoded successfully for {payload.get('email')}")
         return payload
-    except Exception:
+    except Exception as e:
+        logger.error(f"[JWT] Token decode failed: {type(e).__name__}: {str(e)}")
         return None
 
 
@@ -184,7 +187,9 @@ def verify_otp_hash(otp, otp_hash):
     This prevents timing attacks that could be used to guess OTPs.
     """
     computed_hash = hashlib.sha256(otp.encode()).hexdigest()
-    return hmac.compare_digest(computed_hash, otp_hash)
+    is_valid = hmac.compare_digest(computed_hash, otp_hash)
+    logger.debug(f"[OTP_HASH] OTP: {otp}, computed_hash: {computed_hash[:20]}..., stored_hash: {otp_hash[:20] if otp_hash else 'None'}..., match: {is_valid}")
+    return is_valid
 
 
 
@@ -329,6 +334,9 @@ def register_request():
         # Store pending registration with hashed OTP
         try:
             cursor.execute("DELETE FROM registration_otp WHERE email = ?", (email,))
+            #  DEBUG: Log plain OTP temporarily for testing (REMOVE IN PRODUCTION)
+            logger.info(f"[DEV-OTP] Registration OTP for {email}: {otp}")
+            
             cursor.execute("""
                 INSERT INTO registration_otp (name, email, password_hash, otp_hash, expires_at, ip_address)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -404,11 +412,16 @@ def register_verify():
     otp = data.get('otp', '').strip()
     registration_token = data.get('registration_token', '').strip()
     
+    # DEBUG: Log incoming request
+    logger.info(f"[register-verify] Incoming request - email: {email}, otp_length: {len(otp)}, has_token: {bool(registration_token)}")
+    
     if not email or not otp:
+        logger.warning(f"[register-verify] Missing email or otp - email_empty: {not email}, otp_empty: {not otp}")
         return jsonify({'error': 'Email and OTP are required'}), 400
     
     # Validate OTP format
     if not otp.isdigit() or len(otp) != OTP_LENGTH:
+        logger.warning(f"[register-verify] Invalid OTP format - isdigit: {otp.isdigit()}, len: {len(otp)}")
         return jsonify({'error': 'Invalid OTP format'}), 400
     
     try:
@@ -417,6 +430,10 @@ def register_verify():
 
         # --- Primary path: decode signed registration_token (survives server restarts) ---
         token_payload = _decode_registration_token(registration_token) if registration_token else None
+        
+        logger.info(f"[register-verify] Token decode result - has_token: {bool(registration_token)}, decode_success: {token_payload is not None}")
+        if token_payload:
+            logger.info(f"[register-verify] Token payload email: {token_payload.get('email')}, request email: {email}")
 
         if token_payload and token_payload.get('email') == email:
             pending = token_payload  # use token data as the pending record
@@ -424,6 +441,7 @@ def register_verify():
             logger.info(f"[register-verify] Using registration_token for {email}")
         else:
             # --- Fallback: DB lookup ---
+            logger.info(f"[register-verify] Token decode failed or email mismatch, falling back to DB lookup for {email}")
             cursor.execute("""
                 SELECT id, name, email, password_hash, otp_hash, expires_at 
                 FROM registration_otp 
@@ -433,19 +451,26 @@ def register_verify():
             if not row:
                 cursor.close()
                 conn.close()
+                logger.error(f"[register-verify] No pending registration found in DB for {email} - 400 error")
                 return jsonify({'error': 'No pending registration found. Please register again.'}), 400
             pending = dict(row)
             pending_id = pending['id']
+            logger.info(f"[register-verify] Found pending registration in DB for {email}")
         
         # Verify OTP hash
-        if not verify_otp_hash(otp, pending['otp_hash']):
+        is_otp_valid = verify_otp_hash(otp, pending['otp_hash'])
+        logger.info(f"[register-verify] OTP validation result: {is_otp_valid} for {email}")
+        
+        if not is_otp_valid:
             cursor.close()
             conn.close()
-            logger.warning(f"Invalid registration OTP for {email}")
+            logger.warning(f"[register-verify] Invalid registration OTP for {email} - 400 error")
             return jsonify({'error': 'Invalid verification code'}), 400
         
         # Check expiry
         expires_at = datetime.strptime(pending['expires_at'], '%Y-%m-%d %H:%M:%S')
+        logger.info(f"[register-verify] OTP expires_at: {pending['expires_at']}, now: {datetime.now()}")
+        
         if datetime.now() > expires_at:
             # Delete expired DB row if it exists
             if pending_id:
@@ -453,6 +478,7 @@ def register_verify():
                 conn.commit()
             cursor.close()
             conn.close()
+            logger.warning(f"[register-verify] OTP expired for {email} - 400 error")
             return jsonify({'error': 'Verification code has expired. Please register again.'}), 400
         
         # Check if email was registered while OTP was pending
@@ -1068,3 +1094,48 @@ def get_head_user():
     except Exception as e:
         logger.error(f'Error fetching head user: {e}')
         return jsonify({'error': 'Failed to fetch head user'}), 500
+
+# DEBUG ENDPOINT - Development testing only
+@auth_bp.route('/debug-get-otp/<email>', methods=['GET'])
+def debug_get_otp(email):
+    """
+    DEBUG ENDPOINT - Returns the OTP for a pending registration (development only)
+    WARNING: Only use this for testing - remove in production
+    """
+    if os.environ.get('ENVIRONMENT') == 'production':
+        return jsonify({'error': 'Not available in production'}), 403
+    
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Find the OTP hash for this email
+        cursor.execute("SELECT otp_hash, expires_at FROM registration_otp WHERE email = ? ORDER BY created_at DESC LIMIT 1", (email.lower(),))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not row:
+            return jsonify({'error': 'No pending registration found for this email'}), 404
+        
+        # This is a SECURITY RISK - only for development testing!
+        # In production, the user must check their email
+        logger.warning(f"[SECURITY] DEBUG endpoint called for {email} - remove this endpoint from production!")
+        
+        # Generate and return a test OTP for this hash
+        # Try common test OTPs
+        test_otps = ["123456", "000000", "999999", "111111", "222222"]
+        for test_otp in test_otps:
+            hash_attempt = hashlib.sha256(test_otp.encode()).hexdigest()
+            if hmac.compare_digest(hash_attempt, row['otp_hash']):
+                return jsonify({
+                    'otp': test_otp,
+                    'email': email,
+                    'message': 'DEBUG ENDPOINT - This OTP was found by brute-force test (security issue!)'
+                })
+        
+        return jsonify({'error': 'Could not find valid OTP (not in test list)'}), 400
+    
+    except Exception as e:
+        logger.error(f'Debug endpoint error: {e}')
+        return jsonify({'error': str(e)}), 500

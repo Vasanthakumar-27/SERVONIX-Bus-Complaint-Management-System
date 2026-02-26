@@ -1158,31 +1158,38 @@
             const { name, password } = window.pendingRegistration;
             
             const sendBtn = document.getElementById('sendRegOtpBtn');
+            // Disable button IMMEDIATELY
             if (sendBtn) {
                 sendBtn.disabled = true;
                 sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Sending...';
             }
             
-            showLoading();
+            // Move to OTP step IMMEDIATELY without waiting for server
+            document.getElementById('regOtpStep1').style.display = 'none';
+            document.getElementById('regOtpStep2').style.display = 'block';
+            document.getElementById('regOtpInput').focus();
+            
+            // Show loading state but don't block UI with overlay
             try {
+                // Send request with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
                 const response = await fetch(`${API_BASE_URL}/api/register-request`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
+                    body: JSON.stringify({ name, email, password }),
+                    signal: controller.signal
                 });
-
+                
+                clearTimeout(timeoutId);
                 const data = await response.json();
-                hideLoading();
 
                 if (response.ok) {
                     // Store registration token so verify/resend work after server restart
                     window._regToken = data.registration_token || '';
 
-                    document.getElementById('regOtpStep1').style.display = 'none';
-                    document.getElementById('regOtpStep2').style.display = 'block';
-                    document.getElementById('regOtpInput').focus();
-
-                    // Show success message immediately
+                    // Show success message
                     showAlert('✅ Verification code sent! Check your email inbox.', 'success');
 
                     // Start countdown timer
@@ -1196,12 +1203,21 @@
                 } else if (response.status === 429) {
                     showAlert(data.error || 'Too many attempts. Please wait.', 'error');
                 } else {
+                    // Go back to step 1 on error
+                    document.getElementById('regOtpStep1').style.display = 'block';
+                    document.getElementById('regOtpStep2').style.display = 'none';
                     showAlert(data.error || 'Failed to send verification code', 'error');
                 }
             } catch (error) {
-                hideLoading();
                 console.error('[Registration OTP] Error:', error);
-                showAlert('Network error. Please try again.', 'error');
+                // Go back to step 1 on network error
+                document.getElementById('regOtpStep1').style.display = 'block';
+                document.getElementById('regOtpStep2').style.display = 'none';
+                if (error.name === 'AbortError') {
+                    showAlert('⏱️ Request timeout. Please check your connection and try again.', 'error');
+                } else {
+                    showAlert('Network error. Please try again.', 'error');
+                }
             } finally {
                 if (sendBtn) {
                     sendBtn.disabled = false;
@@ -1329,16 +1345,20 @@
                 resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i>Sending...';
             }
 
-            showLoading();
             try {
+                // Send request with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
                 const response = await fetch(`${API_BASE_URL}/api/register-resend`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, registration_token: window._regToken || '' })
+                    body: JSON.stringify({ email, registration_token: window._regToken || '' }),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
                 const data = await response.json();
-                hideLoading();
 
                 if (response.ok) {
                     // Update stored token with the freshly issued one
@@ -1363,8 +1383,12 @@
                     showAlert(data.error || 'Failed to resend code', 'error');
                 }
             } catch (error) {
-                hideLoading();
-                showAlert('Network error. Please try again.', 'error');
+                console.error('[Resend OTP] Error:', error);
+                if (error.name === 'AbortError') {
+                    showAlert('⏱️ Request timeout. Please try again.', 'error');
+                } else {
+                    showAlert('Network error. Please try again.', 'error');
+                }
             } finally {
                 if (resendBtn) {
                     resendBtn.disabled = false;
@@ -1524,7 +1548,7 @@
             const sendBtn = document.getElementById('sendOtpBtn');
             const resendBtn = document.getElementById('resendOtpBtn');
             
-            // Disable button
+            // Disable buttons IMMEDIATELY
             if (sendBtn) {
                 sendBtn.disabled = true;
                 sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Sending...';
@@ -1533,22 +1557,27 @@
                 resendBtn.disabled = true;
             }
             
-            showLoading();
+            // Move to OTP step IMMEDIATELY without waiting
+            document.getElementById('otpStep1').style.display = 'none';
+            document.getElementById('otpStep2').style.display = 'block';
+            document.getElementById('otpInput').focus();
+            
             try {
+                // Send request with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
                 const response = await fetch(`${API_BASE_URL}/api/request-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({ email }),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
                 const data = await response.json();
-                hideLoading();
 
                 if (response.ok) {
-                    document.getElementById('otpStep1').style.display = 'none';
-                    document.getElementById('otpStep2').style.display = 'block';
-                    document.getElementById('otpInput').focus();
-
                     // Show success message immediately
                     showAlert('✅ OTP sent to your email! Check your inbox.', 'success');
 
@@ -1560,18 +1589,31 @@
                         console.log(`[OTP] Requests remaining: ${data.requests_remaining}`);
                     }
                 } else if (response.status === 400 && data.email_failed) {
-                    // Email delivery failed
-                    showAlert('⚠️ Failed to send OTP. Please try resending or contact support.', 'error');
+                    // Email delivery failed - go back to step 1
+                    document.getElementById('otpStep1').style.display = 'block';
+                    document.getElementById('otpStep2').style.display = 'none';
+                    showAlert('⚠️ Failed to send OTP. Please try again or contact support.', 'error');
                 } else if (response.status === 429) {
-                    // Rate limited
+                    // Rate limited - go back to step 1
+                    document.getElementById('otpStep1').style.display = 'block';
+                    document.getElementById('otpStep2').style.display = 'none';
                     showAlert(data.error || 'Too many requests. Please wait and try again.', 'error');
                 } else {
+                    // Other errors - go back to step 1
+                    document.getElementById('otpStep1').style.display = 'block';
+                    document.getElementById('otpStep2').style.display = 'none';
                     showAlert(data.error || 'Failed to send OTP', 'error');
                 }
             } catch (error) {
-                hideLoading();
                 console.error('[OTP] Error:', error);
-                showAlert('Network error. Please try again.', 'error');
+                // Go back to step 1 on error
+                document.getElementById('otpStep1').style.display = 'block';
+                document.getElementById('otpStep2').style.display = 'none';
+                if (error.name === 'AbortError') {
+                    showAlert('⏱️ Request timeout. Please check your connection and try again.', 'error');
+                } else {
+                    showAlert('Network error. Please try again.', 'error');
+                }
             } finally {
                 // Re-enable buttons
                 if (sendBtn) {
