@@ -353,19 +353,28 @@ def register_request():
         
         try:
             # Try to send OTP via email
-            if email_service.resend_api_key or not email_service.development_mode:
-                # Resend API or SMTP configured
+            if email_service.development_mode:
+                # Development mode - log the OTP to console/file for testing
+                email_service.send_registration_otp_email(email, otp, name)
+                logger.info(f"[OTP-DEV] Development mode - OTP sent to console/logs for {email}")
+                # In dev mode, don't mark as failed - allow registration to proceed
+                # Developers/testers can use the OTP from console logs
+            elif email_service.resend_api_key:
+                # Resend API configured
                 _ok = email_service.send_registration_otp_email(email, otp, name)
                 if _ok:
-                    logger.info(f"[OTP] Registration OTP sent successfully to {email}")
+                    logger.info(f"[OTP] Registration OTP sent successfully via Resend to {email}")
                 else:
                     email_send_failed = True
-                    logger.error(f"[OTP] Failed to send registration OTP to {email}")
+                    logger.error(f"[OTP] Failed to send registration OTP via Resend to {email}")
             else:
-                # Development mode - log the OTP
-                email_service.send_registration_otp_email(email, otp, name)
-                email_send_failed = True  # Mark as failed in dev mode
-                logger.info(f"[OTP] Development mode - Registration OTP for {email}: {otp}")
+                # SMTP configured
+                _ok = email_service.send_registration_otp_email(email, otp, name)
+                if _ok:
+                    logger.info(f"[OTP] Registration OTP sent successfully via SMTP to {email}")
+                else:
+                    email_send_failed = True
+                    logger.error(f"[OTP] Failed to send registration OTP via SMTP to {email}")
         except Exception as e:
             email_send_failed = True
             logger.error(f"[OTP] Exception sending registration OTP: {str(e)}")
@@ -383,13 +392,19 @@ def register_request():
         }
         
         if email_send_failed:
-            # Email delivery failed - let frontend know
+            # Email delivery failed (production environment) - let frontend know
             response_data['message'] = 'Failed to send verification code to email. Please check your email configuration or contact support.'
             response_data['email_failed'] = True
             logger.error(f"[OTP] Registration email failed for {email}")
-            return jsonify(response_data), 400  # Return 400 on email failure
+            return jsonify(response_data), 400  # Return 400 only on actual email failure
+        elif email_service.development_mode:
+            # Development mode - OTP is in console/logs
+            response_data['message'] = 'Verification code sent to your email (check console logs for OTP in development mode)'
+            response_data['development_mode'] = True
+            logger.info(f"[OTP] Registration OTP request processed in development mode for {email}")
+            return jsonify(response_data), 200
         else:
-            # Email sent successfully
+            # Email sent successfully in production
             response_data['message'] = 'Verification code sent to your email'
             logger.info(f"[OTP] Registration OTP sent to {email}")
             return jsonify(response_data), 200
