@@ -392,12 +392,12 @@ def register_request():
         }
         
         if email_send_failed or email_service.development_mode:
-            # Email failed (e.g. SMTP blocked on Render free tier) or dev mode —
+            # Email failed (SMTP blocked on Render free tier) or dev mode —
             # return the plain OTP in the response so the user can still register.
             response_data['message'] = 'Email delivery unavailable. Use the code shown on screen to verify.'
-            response_data['email_failed'] = True
-            response_data['otp_fallback'] = otp  # plain OTP shown directly in UI
-            logger.warning(f"[OTP] Email unavailable for {email} — returning OTP in response")
+            response_data['email_failed'] = email_send_failed  # True if actual failure, False if dev mode
+            response_data['dev_otp'] = otp  # plain OTP shown directly in UI
+            logger.warning(f"[OTP] Email unavailable for {email} — returning OTP in response (email_failed={email_send_failed})")
             return jsonify(response_data), 200
         else:
             # Email sent successfully
@@ -617,26 +617,23 @@ def register_resend():
         conn.close()
         
         # Send OTP via email — same strategy as register_request
-        # Send OTP via email
         email_service = _get_email_service()
         email_send_failed = False
-        
-        if email_service.resend_api_key:
-            _ok = email_service.send_registration_otp_email(email, otp, reg_name)
-            if not _ok:
-                email_send_failed = True
-                logger.error(f"[OTP] Failed to resend registration OTP to {email}")
-        elif email_service.development_mode:
+
+        if email_service.development_mode:
             email_service.send_registration_otp_email(email, otp, reg_name)
-            email_send_failed = True
-        else:
-            # SMTP — send synchronously so failures are caught immediately
+        elif email_service.resend_api_key:
             _ok = email_service.send_registration_otp_email(email, otp, reg_name)
             if not _ok:
                 email_send_failed = True
-                logger.error(f"[OTP] Failed to resend registration OTP to {email}")
+                logger.error(f"[OTP] Failed to resend registration OTP via Resend to {email}")
+        else:
+            _ok = email_service.send_registration_otp_email(email, otp, reg_name)
+            if not _ok:
+                email_send_failed = True
+                logger.error(f"[OTP] Failed to resend registration OTP via SMTP to {email}")
             else:
-                logger.info(f"[OTP] Resend registration OTP sent to {email}")
+                logger.info(f"[OTP] Resend registration OTP sent via SMTP to {email}")
 
         # Issue a fresh registration_token with the new OTP
         new_registration_token = _create_registration_token(
@@ -647,12 +644,13 @@ def register_resend():
             'expires_in': OTP_EXPIRY_MINUTES,
             'registration_token': new_registration_token,
         }
-        
-        if email_send_failed:
-            response_data['message'] = 'Failed to send new verification code. Please try again or contact support.'
-            response_data['email_failed'] = True
-            logger.error(f"[OTP] Resend registration OTP failed for {email}")
-            return jsonify(response_data), 400
+
+        if email_send_failed or email_service.development_mode:
+            response_data['message'] = 'Email unavailable. Use the code shown on screen.'
+            response_data['email_failed'] = email_send_failed
+            response_data['dev_otp'] = otp
+            logger.warning(f"[OTP] Email unavailable on resend for {email} — returning OTP in response")
+            return jsonify(response_data), 200
         else:
             response_data['message'] = 'New verification code sent to your email'
             logger.info(f"[OTP] Resend registration OTP sent to {email}")

@@ -1189,30 +1189,28 @@
                     // Store registration token so verify/resend work after server restart
                     window._regToken = data.registration_token || '';
 
-                    if (data.otp_fallback) {
-                        // Email unavailable (e.g. SMTP blocked on free hosting)
-                        // Show OTP directly on screen
-                        const otpInput = document.getElementById('regOtpInput');
-                        if (otpInput) otpInput.value = data.otp_fallback;
-
-                        // Show a prominent banner with the OTP
-                        const step2 = document.getElementById('regOtpStep2');
-                        if (step2) {
-                            const existing = document.getElementById('otpFallbackBanner');
-                            if (!existing) {
-                                const banner = document.createElement('div');
-                                banner.id = 'otpFallbackBanner';
-                                banner.style.cssText = 'background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:14px 16px;margin-bottom:14px;text-align:center;';
-                                banner.innerHTML = `<p style="margin:0 0 6px 0;font-weight:700;color:#92400e;font-size:15px;">📧 Email not available — use this code:</p><p style="margin:0;font-size:32px;font-weight:800;letter-spacing:10px;color:#065f46;">${data.otp_fallback}</p><p style="margin:6px 0 0 0;font-size:12px;color:#78350f;">Code auto-filled below. Click "Verify & Create Account".</p>`;
-                                step2.insertBefore(banner, step2.firstChild);
-                            }
+                    // If backend returned dev_otp (email not configured OR delivery failed), auto-fill and show it
+                    if (data.dev_otp) {
+                        document.getElementById('regOtpInput').value = data.dev_otp;
+                        const existingBanner = document.getElementById('devOtpBanner');
+                        if (!existingBanner) {
+                            const banner = document.createElement('div');
+                            banner.id = 'devOtpBanner';
+                            const isEmailFailed = data.email_failed;
+                            banner.style.cssText = isEmailFailed
+                                ? 'background:#fee2e2;border:1px solid #ef4444;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#991b1b;text-align:center;'
+                                : 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;text-align:center;';
+                            banner.innerHTML = isEmailFailed
+                                ? `<strong>⚠️ Email delivery failed</strong> — use this code: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`
+                                : `<strong>📧 Email not configured</strong> — your OTP is: <strong style="font-size:18px;letter-spacing:3px">${data.dev_otp}</strong>`;
+                            const otpInput = document.getElementById('regOtpInput');
+                            otpInput.parentNode.insertBefore(banner, otpInput);
                         }
-                        startRegOTPTimer();
+                        showAlert(data.email_failed ? '⚠️ Email delivery failed — OTP shown below' : '⚠️ Email service not set up — OTP shown below for testing', 'warning');
                     } else {
-                        // Normal flow — email sent
-                        showAlert('✅ Verification code sent! Check your email inbox.', 'success');
-                        startRegOTPTimer();
+                        showAlert('✅ Verification code sent to your email!', 'success');
                     }
+                    startRegOTPTimer();
                 } else if (response.status === 409) {
                     showAlert(data.error || 'Email already registered', 'error');
                     closeRegOTPModal();
