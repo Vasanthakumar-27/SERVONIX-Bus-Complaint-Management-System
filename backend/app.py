@@ -3,7 +3,7 @@ import os
 import sys
 import logging
 from urllib.parse import urlparse
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
 from flask_talisman import Talisman
 from flask_socketio import SocketIO
@@ -48,10 +48,15 @@ def create_app():
     _frontend_url = os.environ.get('FRONTEND_URL', '').strip()
     _allowed_origins = [
         "http://localhost",
+        "http://localhost:3000",
+        "http://localhost:5000",
         "http://127.0.0.1",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5000",
         "http://[::1]",
-        r"https://.*\.github\.io",
-        r"https://.*\.onrender\.com",
+        "https://vasanthakumar-27.github.io",  # Explicit GitHub Pages domain
+        r"https://.*\.github\.io",  # Any .github.io subdomain
+        r"https://.*\.onrender\.com",  # Any Render domain
     ]
     
     # Extract origin (scheme + domain) from FRONTEND_URL if provided
