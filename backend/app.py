@@ -215,10 +215,21 @@ def create_app():
         return send_from_directory(uploads_folder, filename)
     
     # Health check
-    @app.route('/api/health', methods=['GET'])
+    @app.route('/api/health', methods=['GET', 'OPTIONS'])
     def health_check():
         """API health check endpoint"""
+        if request.method == 'OPTIONS':
+            return '', 204
         return {'status': 'healthy', 'service': 'SERVONIX API'}, 200
+    
+    # Add preflight handler for CORS
+    @app.before_request
+    def handle_preflight():
+        """Handle CORS preflight requests"""
+        if request.method == 'OPTIONS':
+            response = jsonify({'status': 'ok'})
+            response.status_code = 200
+            return response
     
     # Apply Talisman for security headers (HSTS, CSP control) and also set a few custom headers
     try:

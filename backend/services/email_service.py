@@ -30,7 +30,9 @@ class EmailService:
         # Optional display name shown in inbox (e.g. "SERVONIX Support")
         self.from_name = os.environ.get('EMAIL_FROM_NAME', 'SERVONIX')
         # Resend HTTPS API key (preferred on Render — bypasses blocked SMTP ports)
-        self.resend_api_key = os.environ.get('RESEND_API_KEY', '')
+        # DISABLED: Only use Resend if explicitly configured with verified domain
+        # Setting to empty to force SMTP/Gmail usage instead
+        self.resend_api_key = ''  # os.environ.get('RESEND_API_KEY', '')
         # From address for Resend: override via RESEND_FROM env var.
         # Default is Resend's shared sandbox address (works without domain verify).
         self.resend_from = os.environ.get('RESEND_FROM', f'SERVONIX <onboarding@resend.dev>')

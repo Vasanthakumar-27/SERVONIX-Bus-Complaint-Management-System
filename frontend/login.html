@@ -1224,13 +1224,20 @@
                 }
             } catch (error) {
                 console.error('[Registration OTP] Error:', error);
+                console.error('[Registration OTP] Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    type: typeof error,
+                    url: `${API_BASE_URL}/api/register-request`,
+                    api_base: API_BASE_URL
+                });
                 // Go back to step 1 on network error
                 document.getElementById('regOtpStep1').style.display = 'block';
                 document.getElementById('regOtpStep2').style.display = 'none';
                 if (error.name === 'AbortError') {
                     showAlert('⏱️ Request timeout. Please check your connection and try again.', 'error');
                 } else {
-                    showAlert('Network error. Please try again.', 'error');
+                    showAlert(`Network error: ${error.message}. Please check your connection and try again.`, 'error');
                 }
             } finally {
                 if (sendBtn) {
@@ -1342,7 +1349,14 @@
             } catch (error) {
                 hideLoading();
                 console.error('[Registration Verify] Error:', error);
-                showRegOTPError('Network error. Please try again.');
+                console.error('[Registration Verify] Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    type: typeof error,
+                    url: `${API_BASE_URL}/api/register-verify`,
+                    api_base: API_BASE_URL
+                });
+                showRegOTPError(`Network error: ${error.message}`);
             } finally {
                 if (verifyBtn) {
                     verifyBtn.disabled = false;

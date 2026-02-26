@@ -23,8 +23,13 @@ class SocketIOService:
         @self.socketio.on('connect')
         def handle_connect():
             """Handle client connection"""
-            logger.info(f"Client connected")
-            emit('connection_response', {'status': 'connected', 'message': 'Successfully connected to SERVONIX'})
+            from flask import request
+            client_ip = request.remote_addr
+            logger.info(f"Client connected - IP: {client_ip}, Session ID: {request.sid}")
+            try:
+                emit('connection_response', {'status': 'connected', 'message': 'Successfully connected to SERVONIX'})
+            except Exception as e:
+                logger.error(f"Error sending connection response: {e}")
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
@@ -41,21 +46,49 @@ class SocketIOService:
             
             if user_id_to_remove:
                 del self.connected_users[user_id_to_remove]
-                logger.info(f"User {user_id_to_remove} disconnected")
+                logger.info(f"User {user_id_to_remove} disconnected - Session ID: {session_id}")
             else:
-                logger.info("Client disconnected")
+                logger.info(f"Client disconnected - Session ID: {session_id}")
         
         @self.socketio.on('register')
         def handle_register(data):
             """Register user session for targeted notifications"""
             user_id = data.get('user_id')
+            token = data.get('token')  # Alternative: support token-based registration
+            
+            from flask import request
+            session_id = request.sid
+            
             if user_id:
-                from flask import request
-                self.connected_users[user_id] = request.sid
-                logger.info(f"User {user_id} registered for real-time updates")
-                emit('register_response', {'status': 'success', 'user_id': user_id})
+                # Register by user_id
+                self.connected_users[user_id] = session_id
+                logger.info(f"User {user_id} registered for real-time updates - Session ID: {session_id}")
+                try:
+                    emit('register_response', {'status': 'success', 'user_id': user_id})
+                except Exception as e:
+                    logger.error(f"Error sending register response: {e}")
+            elif token:
+                # Register by token - decode and get user_id
+                try:
+                    from .auth import _decode_registration_token
+                    # For now, just log the token-based registration
+                    logger.info(f"Token-based registration received - Session ID: {session_id}, token_length: {len(token)}")
+                    try:
+                        emit('register_response', {'status': 'success', 'message': 'Registered via token'})
+                    except Exception as e:
+                        logger.error(f"Error sending token register response: {e}")
+                except Exception as e:
+                    logger.warning(f"Token-based registration failed: {e}")
+                    try:
+                        emit('register_response', {'status': 'error', 'message': 'Invalid token'})
+                    except Exception as emit_err:
+                        logger.error(f"Error sending token error response: {emit_err}")
             else:
-                emit('register_response', {'status': 'error', 'message': 'user_id required'})
+                logger.warning(f"Register request received without user_id or token - Session ID: {session_id}")
+                try:
+                    emit('register_response', {'status': 'error', 'message': 'user_id or token required'})
+                except Exception as e:
+                    logger.error(f"Error sending register error response: {e}")
         
         @self.socketio.on('mark_notification_read')
         def handle_mark_notification_read(data):

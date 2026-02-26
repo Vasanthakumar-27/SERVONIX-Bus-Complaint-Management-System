@@ -270,7 +270,7 @@ def register():
 # SECURE REGISTRATION OTP SYSTEM
 # ============================================================
 
-@auth_bp.route('/register-request', methods=['POST'])
+@auth_bp.route('/register-request', methods=['POST', 'OPTIONS'])
 def register_request():
     """
     STEP 1: Request registration with OTP verification
@@ -279,7 +279,16 @@ def register_request():
     - Generates and sends OTP
     - Stores pending registration (not actual user yet)
     """
+    # Log incoming request details for debugging
+    logger.info(f"[register-request] Received request - method: {request.method}, content-type: {request.content_type}")
+    
+    # Handle OPTIONS request (CORS preflight)
+    if request.method == 'OPTIONS':
+        logger.info("[register-request] Handling OPTIONS preflight request")
+        return '', 204
+    
     data = request.get_json() or {}
+    logger.info(f"[register-request] Request data keys: {list(data.keys())}")
     name = data.get('name', '').strip()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '').strip()
